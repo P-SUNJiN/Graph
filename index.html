@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GML 실시간 식물 번역 대시보드</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f2;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 420px;
+            padding: 35px 25px;
+            border-radius: 24px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+            text-align: center;
+            box-sizing: border-box;
+        }
+        h1 { color: #1b5e20; font-size: 25px; margin: 0 0 5px 0; font-weight: 800; }
+        .sub { color: #888; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 25px; }
+        .emoji-stage {
+            font-size: 90px;
+            margin: 15px 0;
+            transition: transform 0.3s ease;
+        }
+        .status-card {
+            font-size: 18px;
+            font-weight: 700;
+            color: #222;
+            padding: 18px;
+            border-radius: 16px;
+            background-color: #f5f5f5;
+            margin-bottom: 25px;
+            min-height: 24px;
+            transition: all 0.4s ease;
+        }
+        .chart-title {
+            text-align: left;
+            font-size: 14px;
+            color: #444;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .chart-box {
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1.5px solid #eaeaea;
+            background: #fafafa;
+        }
+        .chart-box img {
+            width: 100%;
+            display: block;
+        }
+        .info-tag {
+            font-size: 11px;
+            color: #b0b0b0;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🌿 실시간 식물 번역기</h1>
+        <div class="sub">Green Mind Lab (GML)</div>
+
+        <div class="emoji-stage" id="emo_layer">⏳</div>
+        <div class="status-card" id="msg_layer">연결 상태를 조회하고 있습니다...</div>
+
+        <div class="chart-title">📊 실시간 생체 전기 신호 패턴 (0-20Hz)</div>
+        <div class="chart-box">
+            <img id="spec_layer" src="/static/spectrogram.png" alt="스펙트로그램 분석차트">
+        </div>
+
+        <div class="info-tag">Edge AI (Random Forest) / ADS1115 Telemetry Server</div>
+    </div>
+
+    <script>
+        function updateDashboard() {
+            fetch('/api/status')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('emo_layer').innerText = data.emotion;
+                    document.getElementById('msg_layer').innerText = data.message;
+                    
+                    let card = document.getElementById('msg_layer');
+                    // 상태별 테마 레이아웃 최적화 시각화
+                    if(data.status === 'normal') { card.style.backgroundColor = '#e8f5e9'; card.style.color = '#2e7d32'; }
+                    else if(data.status === 'drought') { card.style.backgroundColor = '#fff3e0'; card.style.color = '#e65100'; }
+                    else if(data.status === 'hit') { card.style.backgroundColor = '#ffebee'; card.style.color = '#c62828'; }
+                    else if(data.status === 'dark') { card.style.backgroundColor = '#e8eaf6'; card.style.color = '#283593'; }
+                })
+                .catch(err => console.log("서버 연결 대기 중..."));
+            
+            // 브라우저 렌더링 캐싱 방지용 타임스탬프 쿼리 스트링 기법 적용
+            document.getElementById('spec_layer').src = '/static/spectrogram.png?update=' + new Date().getTime();
+        }
+
+        // 1.5초마다 대시보드를 갱신하여 초 실시간성 확보
+        setInterval(updateDashboard, 1500);
+    </script>
+</body>
+</html>
+
+    <title>GML 실시간 식물 번역 대시보드</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f2;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 420px;
+            padding: 35px 25px;
+            border-radius: 24px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+            text-align: center;
+            box-sizing: border-box;
+        }
+        h1 { color: #1b5e20; font-size: 25px; margin: 0 0 5px 0; font-weight: 800; }
+        .sub { color: #888; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 25px; }
+        .emoji-stage {
+            font-size: 90px;
+            margin: 15px 0;
+            transition: transform 0.3s ease;
+        }
+        .status-card {
+            font-size: 18px;
+            font-weight: 700;
+            color: #222;
+            padding: 18px;
+            border-radius: 16px;
+            background-color: #f5f5f5;
+            margin-bottom: 25px;
+            min-height: 24px;
+            transition: all 0.4s ease;
+        }
+        .chart-title {
+            text-align: left;
+            font-size: 14px;
+            color: #444;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .chart-box {
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1.5px solid #eaeaea;
+            background: #fafafa;
+        }
+        .chart-box img {
+            width: 100%;
+            display: block;
+        }
+        .info-tag {
+            font-size: 11px;
+            color: #b0b0b0;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🌿 실시간 식물 번역기</h1>
+        <div class="sub">Green Mind Lab (GML)</div>
+
+        <div class="emoji-stage" id="emo_layer">⏳</div>
+        <div class="status-card" id="msg_layer">연결 상태를 조회하고 있습니다...</div>
+
+        <div class="chart-title">📊 실시간 생체 전기 신호 패턴 (0-20Hz)</div>
+        <div class="chart-box">
+            <img id="spec_layer" src="/static/spectrogram.png" alt="스펙트로그램 분석차트">
+        </div>
+
+        <div class="info-tag">Edge AI (Random Forest) / ADS1115 Telemetry Server</div>
+    </div>
+
+    <script>
+        function updateDashboard() {
+            fetch('/api/status')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('emo_layer').innerText = data.emotion;
+                    document.getElementById('msg_layer').innerText = data.message;
+                    
+                    let card = document.getElementById('msg_layer');
+                    // 상태별 테마 레이아웃 최적화 시각화
+                    if(data.status === 'normal') { card.style.backgroundColor = '#e8f5e9'; card.style.color = '#2e7d32'; }
+                    else if(data.status === 'drought') { card.style.backgroundColor = '#fff3e0'; card.style.color = '#e65100'; }
+                    else if(data.status === 'hit') { card.style.backgroundColor = '#ffebee'; card.style.color = '#c62828'; }
+                    else if(data.status === 'dark') { card.style.backgroundColor = '#e8eaf6'; card.style.color = '#283593'; }
+                })
+                .catch(err => console.log("서버 연결 대기 중..."));
+            
+            // 브라우저 렌더링 캐싱 방지용 타임스탬프 쿼리 스트링 기법 적용
+            document.getElementById('spec_layer').src = '/static/spectrogram.png?update=' + new Date().getTime();
+        }
+
+        // 1.5초마다 대시보드를 갱신하여 초 실시간성 확보
+        setInterval(updateDashboard, 1500);
+    </script>
+</body>
+</html>
