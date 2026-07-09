@@ -772,3 +772,72 @@ body.presentation button{
     background:#eee;
 
   }
+
+/* style.css Final Patch 1-2 */
+
+/* 그래프 20종 대응 */
+
+.chart-grid{
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit,minmax(320px,1fr));
+
+    gap:20px;
+
+}
+
+
+.chart-box{
+
+    min-height:350px;
+
+    background:white;
+
+    padding:20px;
+
+    border-radius:15px;
+
+    overflow:hidden;
+
+}
+
+
+.chart-box canvas{
+
+    width:100%!important;
+
+    height:300px!important;
+
+}
+
+
+
+
+body.dark .chart-box{
+
+    background:#1e1e1e;
+
+}
+
+
+
+@media(max-width:600px){
+
+
+    .chart-box{
+
+        min-height:280px;
+
+    }
+
+
+    .chart-box canvas{
+
+        height:230px!important;
+
+    }
+
+
+        }
