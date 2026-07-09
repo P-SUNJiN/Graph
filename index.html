@@ -1,732 +1,1381 @@
-<!-- index.html Part 1-1 -->
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Survey Data Dashboard</title>
+<title>노인 스마트폰 설문조사 대시보드</title>
 
-<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+
+margin:0;
+
+padding:0;
+
+box-sizing:border-box;
+
+font-family:'Pretendard',sans-serif;
+
+}
+
+body{
+
+background:#eef2f7;
+
+color:#222;
+
+transition:.3s;
+
+}
+
+body.dark{
+
+background:#111827;
+
+color:white;
+
+}
+
+header{
+
+height:80px;
+
+background:#2563eb;
+
+color:white;
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+padding:0 30px;
+
+box-shadow:0 3px 10px rgba(0,0,0,.15);
+
+}
+
+header h1{
+
+font-size:30px;
+
+outline:none;
+
+}
+
+header p{
+
+opacity:.85;
+
+outline:none;
+
+}
+
+.topButtons{
+
+display:flex;
+
+gap:10px;
+
+}
+
+button{
+
+border:none;
+
+cursor:pointer;
+
+padding:10px 16px;
+
+border-radius:10px;
+
+background:#2563eb;
+
+color:white;
+
+font-size:15px;
+
+transition:.25s;
+
+}
+
+button:hover{
+
+transform:translateY(-2px);
+
+}
+
+.container{
+
+display:grid;
+
+grid-template-columns:340px 1fr;
+
+height:calc(100vh - 80px);
+
+}
+
+.sidebar{
+
+background:white;
+
+overflow:auto;
+
+padding:20px;
+
+border-right:1px solid #ddd;
+
+}
+
+.dark .sidebar{
+
+background:#1f2937;
+
+}
+
+.main{
+
+padding:20px;
+
+overflow:auto;
+
+}
+
+.card{
+
+background:white;
+
+border-radius:16px;
+
+padding:18px;
+
+margin-bottom:18px;
+
+box-shadow:0 8px 25px rgba(0,0,0,.08);
+
+}
+
+.dark .card{
+
+background:#1f2937;
+
+}
+
+.card h2{
+
+margin-bottom:15px;
+
+}
+
+input,select,textarea{
+
+width:100%;
+
+padding:10px;
+
+border-radius:8px;
+
+border:1px solid #ccc;
+
+margin-bottom:12px;
+
+font-size:15px;
+
+}
+
+.dark input,
+
+.dark textarea,
+
+.dark select{
+
+background:#374151;
+
+border:none;
+
+color:white;
+
+}
+
+.menuBtn{
+
+width:100%;
+
+margin-bottom:8px;
+
+}
+
+.stats{
+
+display:grid;
+
+grid-template-columns:repeat(4,1fr);
+
+gap:15px;
+
+margin-bottom:20px;
+
+}
+
+.stat{
+
+background:white;
+
+padding:20px;
+
+border-radius:16px;
+
+text-align:center;
+
+box-shadow:0 6px 20px rgba(0,0,0,.08);
+
+}
+
+.dark .stat{
+
+background:#1f2937;
+
+}
+
+.stat h3{
+
+font-size:14px;
+
+margin-bottom:10px;
+
+}
+
+.stat p{
+
+font-size:30px;
+
+font-weight:bold;
+
+}
+
+#chart{
+
+width:100%;
+
+height:620px;
+
+}
+
+table{
+
+width:100%;
+
+border-collapse:collapse;
+
+}
+
+th,td{
+
+padding:12px;
+
+border:1px solid #ddd;
+
+text-align:center;
+
+}
+
+.dark th,
+
+.dark td{
+
+border:1px solid #444;
+
+}
+
+</style>
 
 </head>
 
 <body>
 
-<div id="app">
+<header>
 
-<header class="top-header">
+<div>
 
-<h1 contenteditable="true" id="projectTitle">
-설문 데이터 분석 대시보드
+<h1 contenteditable="true">
+
+노인 스마트폰 사용 실태 조사
+
 </h1>
 
-<div class="header-buttons">
+<p contenteditable="true">
 
-<button id="darkModeBtn">
-다크모드
+STEP-UP 프로젝트
+
+</p>
+
+</div>
+
+<div class="topButtons">
+
+<button id="darkBtn">
+
+🌙 다크모드
+
 </button>
 
-<button id="presentationBtn">
-발표모드
+<button id="presentBtn">
+
+📺 발표모드
+
 </button>
 
-<button id="saveBtn">
-저장
+<button id="savePNG">
+
+🖼 PNG
+
+</button>
+
+<button id="savePDF">
+
+📄 PDF
+
 </button>
 
 </div>
 
 </header>
 
+<div class="container">
 
-<nav class="menu">
+<div class="sidebar">
 
-<button class="menu-btn active" data-page="dashboard">
-대시보드
-</button>
-
-<button class="menu-btn" data-page="data">
-데이터 수정
-</button>
-
-<button class="menu-btn" data-page="chart">
-그래프
-</button>
-
-<button class="menu-btn" data-page="export">
-내보내기
-</button>
-
-</nav>
-
-
-
-<main>
-
-
-<section id="dashboard" class="page active">
-
-
-<div class="summary-container">
-
-
-<div class="summary-card">
-
-<h3>A1</h3>
-
-<p contenteditable="true" id="a1Value">
-응답자 수
-</p>
-
-<span id="a1Number">
-0
-</span>
-
-</div>
-
-
-
-<div class="summary-card">
-
-<h3>A2</h3>
-
-<p contenteditable="true">
-평균 점수
-</p>
-
-<span id="a2Number">
-0
-</span>
-
-</div>
-
-
-
-<div class="summary-card">
-
-<h3>A3</h3>
-
-<p contenteditable="true">
-최고 응답
-</p>
-
-<span id="a3Number">
-0
-</span>
-
-</div>
-
-
-</div>
-
-
-
-<div class="summary-container">
-
-
-<div class="summary-card">
-
-<h3>B1</h3>
-
-<p>
-긍정 비율
-</p>
-
-<span id="b1Number">
-0%
-</span>
-
-</div>
-
-
-<div class="summary-card">
-
-<h3>B2</h3>
-
-<p>
-부정 비율
-</p>
-
-<span id="b2Number">
-0%
-</span>
-
-</div>
-
-
-<div class="summary-card">
-
-<h3>D</h3>
-
-<p>
-데이터 상태
-</p>
-
-<span id="dStatus">
-정상
-</span>
-
-</div>
-
-
-</div>
-
-
-
-<div class="chart-area">
-
-<canvas id="mainChart"></canvas>
-
-</div>
-
-
-</section>
-
-
-
-
-
-<section id="data" class="page">
-
+<div class="card">
 
 <h2>
-데이터 수정
+
+메뉴
+
 </h2>
 
+<div id="menuArea">
 
-<button id="addRowBtn">
-행 추가
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>
+
+그래프 종류
+
+</h2>
+
+<select id="graphType">
+
+<option value="bar">막대그래프</option>
+
+<option value="line">선그래프</option>
+
+<option value="pie">원그래프</option>
+
+<option value="radar">레이더</option>
+
+<option value="treemap">트리맵</option>
+
+<option value="funnel">퍼널</option>
+
+<option value="gauge">게이지</option>
+
+<option value="sunburst">썬버스트</option>
+
+<option value="scatter">산점도</option>
+
+<option value="polar">극좌표</option>
+
+</select>
+
+</div>
+
+<div class="card">
+
+<h2>
+
+편집
+
+</h2>
+
+<label>
+
+문항 제목
+
+</label>
+
+<input id="titleInput">
+
+<label>
+
+항목
+
+</label>
+
+<textarea id="labelInput"></textarea>
+
+<label>
+
+응답수
+
+</label>
+
+<textarea id="valueInput"></textarea>
+
+<button id="saveBtn">
+
+저장
+
 </button>
 
+</div>
 
-<button id="undoBtn">
-실행취소
+<div class="card">
+
+<h2>
+
+파일
+
+</h2>
+
+<button class="menuBtn">
+
+JSON 저장
+
 </button>
 
+<button class="menuBtn">
 
-<button id="redoBtn">
-다시실행
+JSON 불러오기
+
 </button>
 
+<button class="menuBtn">
 
+CSV 가져오기
 
-<table id="dataTable">
+</button>
 
+<button class="menuBtn">
+
+Excel 가져오기
+
+</button>
+
+</div>
+
+</div>
+
+<div class="main">
+
+<div class="stats">
+
+<div class="stat">
+
+<h3>
+
+총 응답자
+
+</h3>
+
+<p id="total">
+
+0
+
+</p>
+
+</div>
+
+<div class="stat">
+
+<h3>
+
+현재 문항
+
+</h3>
+
+<p id="current">
+
+A1
+
+</p>
+
+</div>
+
+<div class="stat">
+
+<h3>
+
+최고 응답
+
+</h3>
+
+<p id="max">
+
+0
+
+</p>
+
+</div>
+
+<div class="stat">
+
+<h3>
+
+평균
+
+</h3>
+
+<p id="avg">
+
+0
+
+</p>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<div id="chart"></div>
+
+</div>
+
+<div class="card">
+
+<table>
 
 <thead>
 
 <tr>
 
-<th>ID</th>
+<th>
 
-<th>A1</th>
+항목
 
-<th>A2</th>
+</th>
 
-<th>A3</th>
+<th>
 
-<th>B1</th>
+응답수
 
-<th>B2</th>
+</th>
 
-<th>Q1</th>
+<th>
 
-<th>Q2</th>
+비율
 
-<th>Q3</th>
-
-<th>Q4</th>
-
-<th>Q5</th>
-
-<th>Q6</th>
-
-<th>Q7</th>
-
-<th>Q8</th>
-
-<th>Q9</th>
-
-<th>Q10</th>
-
-<th>D</th>
+</th>
 
 </tr>
 
 </thead>
 
-
 <tbody id="tableBody">
 
-</tbody>
+  </tbody>
 
+  </tbody>
 
 </table>
 
-
-</section>
-
-
-
-
-
-<!-- index.html Final Patch 1-1 -->
-<!-- 그래프 20종 캔버스 확장 영역 추가 -->
-
-<section id="chart" class="page">
-
-<h2>
-그래프 분석
-</h2>
-
-
-<div class="chart-grid">
-
-
-<div class="chart-box">
-<canvas id="chart1"></canvas>
 </div>
-
-<div class="chart-box">
-<canvas id="chart2"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart3"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart4"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart5"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart6"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart7"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart8"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart9"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart10"></canvas>
-</div>
-
-
-<div class="chart-box">
-<canvas id="chart11"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart12"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart13"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart14"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart15"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart16"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart17"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart18"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart19"></canvas>
-</div>
-
-<div class="chart-box">
-<canvas id="chart20"></canvas>
-</div>
-
 
 </div>
 
-
-           </section>
-
-    <!-- index.html Part 1-2 -->
-
-<section id="export" class="page">
-
-<h2>
-데이터 내보내기
-</h2>
-
-
-<div class="export-buttons">
-
-
-<button id="jsonExportBtn">
-JSON 저장
-</button>
-
-
-<button id="csvExportBtn">
-CSV 저장
-</button>
-
-
-<button id="xlsxExportBtn">
-XLSX 저장
-</button>
-
-
-<button id="pngExportBtn">
-PNG 저장
-</button>
-
-
-<button id="pdfExportBtn">
-PDF 저장
-</button>
-
-
 </div>
 
+<script>
+
+const survey={
+
+A1:{
+title:"연령",
+labels:["60대","70대","80대 이상"],
+values:[15,24,11]
+},
+
+A2:{
+title:"사용 스마트폰",
+labels:["삼성","애플","LG","기타"],
+values:[31,13,2,4]
+},
+
+A3:{
+title:"사용 기간",
+labels:["1년 미만","1~3년","3~5년","5년 이상"],
+values:[4,12,16,18]
+},
+
+B1:{
+title:"스마트폰 사용 빈도",
+labels:["매일","주 3~5회","가끔","거의 안 함"],
+values:[33,8,6,3]
+},
+
+B2:{
+title:"주 사용 목적",
+labels:["전화","문자","유튜브","카카오톡","검색","기타"],
+values:[40,32,25,37,21,6]
+},
+
+Q1:{
+title:"글씨가 너무 작다",
+labels:["불편함 있음","불편함 없음"],
+values:[32,18]
+},
 
-<div class="export-info">
+Q2:{
+title:"터치가 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[28,22]
+},
 
-<p>
-현재 데이터와 분석 결과를 다양한 형식으로 저장할 수 있습니다.
-</p>
+Q3:{
+title:"설정 변경이 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[35,15]
+},
 
-</div>
+Q4:{
+title:"앱 찾기가 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[30,20]
+},
 
+Q5:{
+title:"사기문자가 걱정된다",
+labels:["불편함 있음","불편함 없음"],
+values:[38,12]
+},
 
-</section>
+Q6:{
+title:"오류 해결이 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[29,21]
+},
 
+Q7:{
+title:"검색이 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[27,23]
+},
 
+Q8:{
+title:"결제가 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[22,28]
+},
 
+Q9:{
+title:"업데이트가 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[31,19]
+},
 
-<section id="questionPanel" class="page">
+Q10:{
+title:"가장 필요한 도움",
 
+labels:[
+"글씨 확대",
+"음성 안내",
+"사기 예방",
+"사용법 교육",
+"터치 도움",
+"기타"
+],
 
-<h2>
-설문 문항 관리
-</h2>
+values:[18,13,26,29,10,4]
 
+},
 
-<div class="question-list">
+D:{
+title:"추가 의견",
 
+labels:[
+"좋음",
+"보통",
+"개선 필요"
+],
 
-<div class="question-item">
+values:[12,20,18]
 
-<label>
-Q1
-</label>
+}
 
-<input 
-type="text"
-id="q1Title"
-value="질문 1"
->
+};
 
-</div>
+let currentKey="A1";
 
+const chart=echarts.init(document.getElementById("chart"));
 
+const menu=document.getElementById("menuArea");
 
-<div class="question-item">
+Object.keys(survey).forEach(key=>{
 
-<label>
-Q2
-</label>
+const btn=document.createElement("button");
 
-<input 
-type="text"
-id="q2Title"
-value="질문 2"
->
+btn.className="menuBtn";
 
-</div>
+btn.innerText=key;
 
+btn.onclick=()=>{
 
+currentKey=key;
 
-<div class="question-item">
+loadEditor();
 
-<label>
-Q3
-</label>
+drawChart();
 
-<input 
-type="text"
-id="q3Title"
-value="질문 3"
->
+};
 
-</div>
+menu.appendChild(btn);
 
+});
 
+function loadEditor(){
 
-<div class="question-item">
+const d=survey[currentKey];
 
-<label>
-Q4
-</label>
+current.innerText=currentKey;
 
-<input 
-type="text"
-id="q4Title"
-value="질문 4"
->
+titleInput.value=d.title;
 
-</div>
+labelInput.value=d.labels.join(",");
 
+valueInput.value=d.values.join(",");
 
+}
 
-<div class="question-item">
+function updateTable(){
 
-<label>
-Q5
-</label>
+const d=survey[currentKey];
 
-<input 
-type="text"
-id="q5Title"
-value="질문 5"
->
+const body=document.getElementById("tableBody");
 
-</div>
+body.innerHTML="";
 
+const sum=d.values.reduce((a,b)=>a+b,0);
 
+total.innerText=sum;
 
-<div class="question-item">
+max.innerText=Math.max(...d.values);
 
-<label>
-Q6
-</label>
+avg.innerText=(sum/d.values.length).toFixed(1);
 
-<input 
-type="text"
-id="q6Title"
-value="질문 6"
->
+d.labels.forEach((label,i)=>{
 
-</div>
+const tr=document.createElement("tr");
 
+const per=((d.values[i]/sum)*100).toFixed(1);
 
+tr.innerHTML=
 
-<div class="question-item">
+"<td>"+label+"</td>"+
 
-<label>
-Q7
-</label>
+"<td>"+d.values[i]+"</td>"+
 
-<input 
-type="text"
-id="q7Title"
-value="질문 7"
->
+"<td>"+per+"%</td>";
 
-</div>
+body.appendChild(tr);
 
+});
 
+}
 
-<div class="question-item">
+  function drawChart(){
 
-<label>
-Q8
-</label>
+const d=survey[currentKey];
 
-<input 
-type="text"
-id="q8Title"
-value="질문 8"
->
+const type=document.getElementById("graphType").value;
 
-</div>
+let option={};
 
+if(type==="bar"){
 
+option={
 
-<div class="question-item">
+title:{
+text:d.title,
+left:"center"
+},
 
-<label>
-Q9
-</label>
+tooltip:{},
 
-<input 
-type="text"
-id="q9Title"
-value="질문 9"
->
+xAxis:{
+type:"category",
+data:d.labels
+},
 
-</div>
+yAxis:{
+type:"value"
+},
 
+series:[{
 
+type:"bar",
 
-<div class="question-item">
+data:d.values,
 
-<label>
-Q10
-</label>
+label:{
+show:true,
+position:"top"
+},
 
-<input 
-type="text"
-id="q10Title"
-value="질문 10"
->
+itemStyle:{
+borderRadius:[8,8,0,0]
+}
 
-</div>
+}]
 
+};
 
-</div>
+}
 
+else if(type==="line"){
 
-</section>
+option={
 
+title:{
+text:d.title,
+left:"center"
+},
 
+tooltip:{},
 
+xAxis:{
+type:"category",
+data:d.labels
+},
 
+yAxis:{
+type:"value"
+},
 
-<section id="settings" class="page">
+series:[{
 
+type:"line",
 
-<h2>
-환경 설정
-</h2>
+smooth:true,
 
+data:d.values,
 
-<div class="setting-box">
+label:{
+show:true
+},
 
+areaStyle:{}
 
-<label>
-자동 저장
-</label>
+}]
 
-<input 
-type="checkbox"
-id="autoSave"
-checked
->
+};
 
+}
 
-</div>
+else if(type==="pie"){
 
+option={
 
+title:{
+text:d.title,
+left:"center"
+},
 
-<div class="setting-box">
+tooltip:{
+trigger:"item"
+},
 
+series:[{
 
-<label>
-애니메이션 효과
-</label>
+type:"pie",
 
-<input 
-type="checkbox"
-id="animationToggle"
-checked
->
+radius:"70%",
 
+data:d.labels.map((v,i)=>({
 
-</div>
+name:v,
 
+value:d.values[i]
 
+})),
 
-<div class="setting-box">
+label:{
+formatter:"{b}\n{d}%"
+}
 
+}]
 
-<label>
-기본 그래프 종류
-</label>
+};
 
+}
 
-<select id="defaultChart">
+else if(type==="radar"){
 
+option={
 
-<option value="bar">
-막대그래프
-</option>
+title:{
+text:d.title,
+left:"center"
+},
 
+tooltip:{},
 
-<option value="line">
-선그래프
-</option>
+radar:{
 
+indicator:d.labels.map((v,i)=>({
 
-<option value="pie">
-원그래프
-</option>
+name:v,
 
+max:Math.max(...d.values)+10
 
-<option value="radar">
-레이더그래프
-</option>
+}))
 
+},
 
-</select>
+series:[{
 
+type:"radar",
 
-</div>
+data:[{
 
+value:d.values,
 
-</section>
+name:d.title
 
+}]
 
+}]
 
+};
 
+}
 
-</main>
+else if(type==="treemap"){
 
+option={
 
+title:{
+text:d.title,
+left:"center"
+},
 
+series:[{
 
+type:"treemap",
 
-<footer>
+data:d.labels.map((v,i)=>({
 
+name:v,
 
-<p>
-Survey Dashboard System
-</p>
+value:d.values[i]
 
+}))
 
-<p id="saveStatus">
-저장되지 않음
-</p>
+}]
 
+};
 
-</footer>
+}
 
+else if(type==="funnel"){
 
+option={
 
+title:{
+text:d.title,
+left:"center"
+},
 
-</div>
+tooltip:{},
 
+series:[{
 
+type:"funnel",
 
-<script src="script.js"></script>
+sort:"descending",
 
+data:d.labels.map((v,i)=>({
 
+name:v,
+
+value:d.values[i]
+
+}))
+
+}]
+
+};
+
+}
+
+else if(type==="gauge"){
+
+const avgValue=
+
+d.values.reduce((a,b)=>a+b,0)
+
+/d.values.length;
+
+option={
+
+series:[{
+
+type:"gauge",
+
+progress:{
+
+show:true
+
+},
+
+detail:{
+
+formatter:"{value}"
+
+},
+
+data:[{
+
+value:avgValue.toFixed(1),
+
+name:d.title
+
+}]
+
+}]
+
+};
+
+}
+
+else if(type==="sunburst"){
+
+option={
+
+series:[{
+
+type:"sunburst",
+
+radius:[0,"90%"],
+
+data:d.labels.map((v,i)=>({
+
+name:v,
+
+value:d.values[i]
+
+}))
+
+}]
+
+};
+
+}
+
+else if(type==="scatter"){
+
+option={
+
+tooltip:{},
+
+xAxis:{},
+
+yAxis:{},
+
+series:[{
+
+type:"scatter",
+
+symbolSize:20,
+
+data:d.values.map((v,i)=>[i+1,v])
+
+}]
+
+};
+
+}
+
+else if(type==="polar"){
+
+option={
+
+angleAxis:{},
+
+radiusAxis:{
+
+type:"category",
+
+data:d.labels
+
+},
+
+polar:{},
+
+series:[{
+
+type:"bar",
+
+coordinateSystem:"polar",
+
+data:d.values
+
+}]
+
+};
+
+}
+
+chart.setOption(option,true);
+
+updateTable();
+
+  }
+
+  document.getElementById("graphType").addEventListener("change",drawChart);
+
+document.getElementById("saveBtn").onclick=function(){
+
+survey[currentKey].title=titleInput.value;
+
+survey[currentKey].labels=
+
+labelInput.value
+
+.split(",")
+
+.map(v=>v.trim());
+
+survey[currentKey].values=
+
+valueInput.value
+
+.split(",")
+
+.map(v=>Number(v.trim()));
+
+drawChart();
+
+};
+
+document.getElementById("darkBtn").onclick=function(){
+
+document.body.classList.toggle("dark");
+
+chart.resize();
+
+};
+
+document.getElementById("presentBtn").onclick=function(){
+
+if(!document.fullscreenElement){
+
+document.documentElement.requestFullscreen();
+
+}else{
+
+document.exitFullscreen();
+
+}
+
+};
+
+document.getElementById("savePNG").onclick=function(){
+
+const a=document.createElement("a");
+
+a.href=chart.getDataURL({
+
+pixelRatio:2,
+
+backgroundColor:"#ffffff"
+
+});
+
+a.download=currentKey+".png";
+
+a.click();
+
+};
+
+document.getElementById("savePDF").onclick=function(){
+
+window.print();
+
+};
+
+function downloadJSON(){
+
+const blob=new Blob(
+
+[JSON.stringify(survey,null,2)],
+
+{
+
+type:"application/json"
+
+}
+
+);
+
+const a=document.createElement("a");
+
+a.href=URL.createObjectURL(blob);
+
+a.download="surveyData.json";
+
+a.click();
+
+URL.revokeObjectURL(a.href);
+
+}
+
+function uploadJSON(file){
+
+const reader=new FileReader();
+
+reader.onload=function(e){
+
+const obj=JSON.parse(e.target.result);
+
+Object.assign(survey,obj);
+
+loadEditor();
+
+drawChart();
+
+};
+
+reader.readAsText(file);
+
+}
+
+function downloadCSV(){
+
+let csv="문항,항목,응답수\n";
+
+Object.keys(survey).forEach(key=>{
+
+survey[key].labels.forEach((v,i)=>{
+
+csv+=
+
+key+","
+
++v+","
+
++survey[key].values[i]
+
++"\n";
+
+});
+
+});
+
+const blob=new Blob(
+
+[csv],
+
+{
+
+type:"text/csv"
+
+}
+
+);
+
+const a=document.createElement("a");
+
+a.href=URL.createObjectURL(blob);
+
+a.download="survey.csv";
+
+a.click();
+
+URL.revokeObjectURL(a.href);
+
+}
+
+const fileInput=document.createElement("input");
+
+fileInput.type="file";
+
+fileInput.accept=".json,.csv,.xlsx";
+
+fileInput.style.display="none";
+
+document.body.appendChild(fileInput);
+
+const fileButtons=document.querySelectorAll(".menuBtn");
+
+fileButtons[0].onclick=downloadJSON;
+
+fileButtons[1].onclick=function(){
+
+fileInput.accept=".json";
+
+fileInput.click();
+
+};
+
+fileButtons[2].onclick=function(){
+
+alert("CSV 가져오기 기능은 다음 코드에서 완성됩니다.");
+
+};
+
+fileButtons[3].onclick=function(){
+
+alert("Excel(xlsx) 가져오기 기능은 다음 코드에서 완성됩니다.");
+
+};
+
+fileInput.onchange=function(){
+
+const file=fileInput.files[0];
+
+if(!file)return;
+
+if(file.name.endsWith(".json")){
+
+uploadJSON(file);
+
+}
+
+};
+
+window.addEventListener(
+
+"resize",
+
+()=>chart.resize()
+
+);
+
+loadEditor();
+
+drawChart();
+
+</script>
+
+  <script src="extras.js"></script>
+  
 </body>
 
-    </html>
+           </html>
