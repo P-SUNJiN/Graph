@@ -1,82 +1,676 @@
+<!-- index.html Part 1-1 -->
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>STEP-UP 설문 분석 대시보드</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
-    
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.2.2/wordcloud2.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Survey Data Dashboard</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 </head>
-<body data-theme="light">
-    <header class="toolbar no-print">
-        <div class="logo">📊 STEP-UP Dashboard</div>
-        <div class="controls">
-            <button onclick="DashboardApp.toggleTheme()"><i class="fas fa-moon"></i> 테마</button>
-            <button onclick="DashboardApp.toggleFullScreen()"><i class="fas fa-expand"></i> 전체화면</button>
-            <button onclick="DashboardApp.undo()"><i class="fas fa-undo"></i> Undo</button>
-            <button onclick="DashboardApp.redo()"><i class="fas fa-redo"></i> Redo</button>
-            <select id="exportSelect" onchange="DashboardApp.exportData(this.value)">
-                <option value="">💾 내보내기...</option>
-                <option value="json">JSON 저장</option>
-                <option value="excel">Excel(xlsx) 저장</option>
-                <option value="csv">CSV 저장</option>
-                <option value="pdf">PDF 저장</option>
-                <option value="png">PNG 캡처</option>
-            </select>
-            <label class="btn-upload">
-                <i class="fas fa-upload"></i> 데이터 불러오기
-                <input type="file" id="fileInput" accept=".json, .csv, .xlsx" style="display:none;" onchange="DashboardApp.importData(event)">
-            </label>
-        </div>
-    </header>
 
-    <main class="dashboard" id="dashboard-content">
-        <section class="summary-cards">
-            <div class="card"><h3>총 응답자</h3><h2 id="total-responses">0</h2></div>
-            <div class="card"><h3>가장 큰 어려움 (Q1~Q9)</h3><h2 id="top-difficulty">-</h2></div>
-            <div class="card"><h3>가장 필요한 도움 (Q10)</h3><h2 id="top-need">-</h2></div>
-        </section>
+<body>
 
-        <section class="chart-grid" id="sortable-charts">
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>Q1~Q9. 스마트폰 사용 어려움 종합 비교</h3>
-                    <select onchange="DashboardApp.changeChartType('q1_q9_chart', this.value)">
-                        <option value="radar">레이더</option><option value="bar">막대</option>
-                        <option value="line">선</option><option value="polar">극좌표</option>
-                    </select>
-                </div>
-                <div id="q1_q9_chart" class="chart-container"></div>
-            </div>
+<div id="app">
 
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>Q10. 가장 필요한 도움</h3>
-                    <select onchange="DashboardApp.changeChartType('q10_chart', this.value)">
-                        <option value="pie">도넛/원</option><option value="rose">로즈</option>
-                        <option value="treemap">트리맵</option><option value="funnel">퍼널</option>
-                    </select>
-                </div>
-                <div id="q10_chart" class="chart-container"></div>
-            </div>
-            
-            <div class="chart-card">
-                <div class="chart-header">
-                    <h3>D. 추가 의견 핵심 키워드</h3>
-                </div>
-                <canvas id="wordcloud_canvas" class="chart-container"></canvas>
-            </div>
-        </section>
-    </main>
+<header class="top-header">
 
-    <script src="js/app.js"></script>
+<h1 contenteditable="true" id="projectTitle">
+설문 데이터 분석 대시보드
+</h1>
+
+<div class="header-buttons">
+
+<button id="darkModeBtn">
+다크모드
+</button>
+
+<button id="presentationBtn">
+발표모드
+</button>
+
+<button id="saveBtn">
+저장
+</button>
+
+</div>
+
+</header>
+
+
+<nav class="menu">
+
+<button class="menu-btn active" data-page="dashboard">
+대시보드
+</button>
+
+<button class="menu-btn" data-page="data">
+데이터 수정
+</button>
+
+<button class="menu-btn" data-page="chart">
+그래프
+</button>
+
+<button class="menu-btn" data-page="export">
+내보내기
+</button>
+
+</nav>
+
+
+
+<main>
+
+
+<section id="dashboard" class="page active">
+
+
+<div class="summary-container">
+
+
+<div class="summary-card">
+
+<h3>A1</h3>
+
+<p contenteditable="true" id="a1Value">
+응답자 수
+</p>
+
+<span id="a1Number">
+0
+</span>
+
+</div>
+
+
+
+<div class="summary-card">
+
+<h3>A2</h3>
+
+<p contenteditable="true">
+평균 점수
+</p>
+
+<span id="a2Number">
+0
+</span>
+
+</div>
+
+
+
+<div class="summary-card">
+
+<h3>A3</h3>
+
+<p contenteditable="true">
+최고 응답
+</p>
+
+<span id="a3Number">
+0
+</span>
+
+</div>
+
+
+</div>
+
+
+
+<div class="summary-container">
+
+
+<div class="summary-card">
+
+<h3>B1</h3>
+
+<p>
+긍정 비율
+</p>
+
+<span id="b1Number">
+0%
+</span>
+
+</div>
+
+
+<div class="summary-card">
+
+<h3>B2</h3>
+
+<p>
+부정 비율
+</p>
+
+<span id="b2Number">
+0%
+</span>
+
+</div>
+
+
+<div class="summary-card">
+
+<h3>D</h3>
+
+<p>
+데이터 상태
+</p>
+
+<span id="dStatus">
+정상
+</span>
+
+</div>
+
+
+</div>
+
+
+
+<div class="chart-area">
+
+<canvas id="mainChart"></canvas>
+
+</div>
+
+
+</section>
+
+
+
+
+
+<section id="data" class="page">
+
+
+<h2>
+데이터 수정
+</h2>
+
+
+<button id="addRowBtn">
+행 추가
+</button>
+
+
+<button id="undoBtn">
+실행취소
+</button>
+
+
+<button id="redoBtn">
+다시실행
+</button>
+
+
+
+<table id="dataTable">
+
+
+<thead>
+
+<tr>
+
+<th>ID</th>
+
+<th>A1</th>
+
+<th>A2</th>
+
+<th>A3</th>
+
+<th>B1</th>
+
+<th>B2</th>
+
+<th>Q1</th>
+
+<th>Q2</th>
+
+<th>Q3</th>
+
+<th>Q4</th>
+
+<th>Q5</th>
+
+<th>Q6</th>
+
+<th>Q7</th>
+
+<th>Q8</th>
+
+<th>Q9</th>
+
+<th>Q10</th>
+
+<th>D</th>
+
+</tr>
+
+</thead>
+
+
+<tbody id="tableBody">
+
+</tbody>
+
+
+</table>
+
+
+</section>
+
+
+
+
+
+<section id="chart" class="page">
+
+
+<h2>
+그래프 분석
+</h2>
+
+
+<div class="chart-grid">
+
+
+<div class="chart-box">
+
+<canvas id="chart1"></canvas>
+
+</div>
+
+
+<div class="chart-box">
+
+<canvas id="chart2"></canvas>
+
+</div>
+
+
+<div class="chart-box">
+
+<canvas id="chart3"></canvas>
+
+</div>
+
+
+<div class="chart-box">
+
+<canvas id="chart4"></canvas>
+
+</div>
+
+
+</div>
+
+
+    </section>
+
+    <!-- index.html Part 1-2 -->
+
+<section id="export" class="page">
+
+<h2>
+데이터 내보내기
+</h2>
+
+
+<div class="export-buttons">
+
+
+<button id="jsonExportBtn">
+JSON 저장
+</button>
+
+
+<button id="csvExportBtn">
+CSV 저장
+</button>
+
+
+<button id="xlsxExportBtn">
+XLSX 저장
+</button>
+
+
+<button id="pngExportBtn">
+PNG 저장
+</button>
+
+
+<button id="pdfExportBtn">
+PDF 저장
+</button>
+
+
+</div>
+
+
+<div class="export-info">
+
+<p>
+현재 데이터와 분석 결과를 다양한 형식으로 저장할 수 있습니다.
+</p>
+
+</div>
+
+
+</section>
+
+
+
+
+<section id="questionPanel" class="page">
+
+
+<h2>
+설문 문항 관리
+</h2>
+
+
+<div class="question-list">
+
+
+<div class="question-item">
+
+<label>
+Q1
+</label>
+
+<input 
+type="text"
+id="q1Title"
+value="질문 1"
+>
+
+</div>
+
+
+
+<div class="question-item">
+
+<label>
+Q2
+</label>
+
+<input 
+type="text"
+id="q2Title"
+value="질문 2"
+>
+
+</div>
+
+
+
+<div class="question-item">
+
+<label>
+Q3
+</label>
+
+<input 
+type="text"
+id="q3Title"
+value="질문 3"
+>
+
+</div>
+
+
+
+<div class="question-item">
+
+<label>
+Q4
+</label>
+
+<input 
+type="text"
+id="q4Title"
+value="질문 4"
+>
+
+</div>
+
+
+
+<div class="question-item">
+
+<label>
+Q5
+</label>
+
+<input 
+type="text"
+id="q5Title"
+value="질문 5"
+>
+
+</div>
+
+
+
+<div class="question-item">
+
+<label>
+Q6
+</label>
+
+<input 
+type="text"
+id="q6Title"
+value="질문 6"
+>
+
+</div>
+
+
+
+<div class="question-item">
+
+<label>
+Q7
+</label>
+
+<input 
+type="text"
+id="q7Title"
+value="질문 7"
+>
+
+</div>
+
+
+
+<div class="question-item">
+
+<label>
+Q8
+</label>
+
+<input 
+type="text"
+id="q8Title"
+value="질문 8"
+>
+
+</div>
+
+
+
+<div class="question-item">
+
+<label>
+Q9
+</label>
+
+<input 
+type="text"
+id="q9Title"
+value="질문 9"
+>
+
+</div>
+
+
+
+<div class="question-item">
+
+<label>
+Q10
+</label>
+
+<input 
+type="text"
+id="q10Title"
+value="질문 10"
+>
+
+</div>
+
+
+</div>
+
+
+</section>
+
+
+
+
+
+<section id="settings" class="page">
+
+
+<h2>
+환경 설정
+</h2>
+
+
+<div class="setting-box">
+
+
+<label>
+자동 저장
+</label>
+
+<input 
+type="checkbox"
+id="autoSave"
+checked
+>
+
+
+</div>
+
+
+
+<div class="setting-box">
+
+
+<label>
+애니메이션 효과
+</label>
+
+<input 
+type="checkbox"
+id="animationToggle"
+checked
+>
+
+
+</div>
+
+
+
+<div class="setting-box">
+
+
+<label>
+기본 그래프 종류
+</label>
+
+
+<select id="defaultChart">
+
+
+<option value="bar">
+막대그래프
+</option>
+
+
+<option value="line">
+선그래프
+</option>
+
+
+<option value="pie">
+원그래프
+</option>
+
+
+<option value="radar">
+레이더그래프
+</option>
+
+
+</select>
+
+
+</div>
+
+
+</section>
+
+
+
+
+
+</main>
+
+
+
+
+
+<footer>
+
+
+<p>
+Survey Dashboard System
+</p>
+
+
+<p id="saveStatus">
+저장되지 않음
+</p>
+
+
+</footer>
+
+
+
+
+</div>
+
+
+
+<script src="script.js"></script>
+
+
 </body>
-</html>
+
+    </html>
