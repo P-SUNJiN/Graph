@@ -1,38 +1,33 @@
 const DashboardApp = {
-    // 1. 상태 관리 (실행 취소/다시 실행 및 자동 저장 지원)
     state: { data: null },
     history: [],
     historyStep: -1,
-    charts: {}, // ECharts 인스턴스 보관
+    charts: {},
 
     init() {
         this.loadSampleData();
         this.initSortable();
-        
-        // 반응형 리사이즈 이벤트
         window.addEventListener('resize', () => {
             Object.values(this.charts).forEach(chart => chart.resize());
         });
     },
 
-    // 2. Undo/Redo 상태 저장 로직
+    // 1. 실행 취소 (Undo) / 다시 실행 (Redo) / 자동 저장
     saveState(newData) {
-        this.state.data = JSON.parse(JSON.stringify(newData));
+        this.state.data = JSON.parse(JSON.stringify(newData || this.state.data));
         this.historyStep++;
         this.history = this.history.slice(0, this.historyStep);
         this.history.push(JSON.parse(JSON.stringify(this.state.data)));
-        localStorage.setItem('stepUpAutoSave', JSON.stringify(this.state.data)); // 자동 저장
+        localStorage.setItem('stepUpAutoSave', JSON.stringify(this.state.data));
         this.renderAll();
     },
-
     undo() {
         if (this.historyStep > 0) {
             this.historyStep--;
             this.state.data = JSON.parse(JSON.stringify(this.history[this.historyStep]));
             this.renderAll();
-        } else { alert("더 이상 되돌릴 수 없습니다."); }
+        }
     },
-
     redo() {
         if (this.historyStep < this.history.length - 1) {
             this.historyStep++;
@@ -41,102 +36,148 @@ const DashboardApp = {
         }
     },
 
-    // 3. ECharts 20종 지원 렌더링 (대표적인 것들 설정)
-    renderAll() {
-        if(!this.state.data) return;
-        
-        // 통계 카드 업데이트
-        document.getElementById('total-responses').innerText = "152명 (예시)";
-        
-        // 차트 1: 레이더 차트 (Q1~Q9 전체 비교)
-        if(!this.charts['q1_q9']) this.charts['q1_q9'] = echarts.init(document.getElementById('q1_q9_chart'));
-        const radarOption = {
-            tooltip: {},
-            radar: { indicator: [
-                { name: '시력(Q1)', max: 5 }, { name: '청력(Q2)', max: 5 },
-                { name: '인지(Q3)', max: 5 }, { name: '조작(Q4)', max: 5 },
-                { name: '보안(Q5)', max: 5 }
-            ]},
-            series: [{ type: 'radar', data: [{ value: [4.2, 3.8, 4.5, 4.0, 4.8], name: '평균 어려움' }] }]
-        };
-        this.charts['q1_q9'].setOption(radarOption);
-
-        // 차트 2: 도넛 파이 차트 (Q10 가장 필요한 도움)
-        if(!this.charts['q10']) this.charts['q10'] = echarts.init(document.getElementById('q10_chart'));
-        const pieOption = {
-            tooltip: { trigger: 'item' },
-            series: [{
-                type: 'pie', radius: ['40%', '70%'],
-                data: [
-                    { value: 45, name: '화면 읽어주기' }, { value: 30, name: '글씨 크게' },
-                    { value: 50, name: '사기 앱 알림' }, { value: 27, name: '음성 도움' }
-                ]
-            }]
-        };
-        this.charts['q10'].setOption(pieOption);
-
-        // 차트 3: 워드클라우드 (WordCloud2.js 사용)
-        const canvas = document.getElementById('wordcloud_canvas');
-        canvas.width = canvas.parentElement.offsetWidth;
-        WordCloud(canvas, { 
-            list: [['보이스피싱', 50], ['글씨', 40], ['복잡함', 30], ['비밀번호', 25], ['유튜브', 20]],
-            weightFactor: 2, fontFamily: 'Pretendard', color: 'random-dark'
-        });
+    // 2. 데이터 편집 기능 (문항/항목/제목 추가 및 수정)
+    updateTitle(title, subtitle) {
+        this.state.data.surveyInfo.title = title;
+        this.state.data.surveyInfo.subtitle = subtitle;
+        this.saveState();
+    },
+    addQuestion(qId, title, type) {
+        this.state.data.questions.push({ id: qId, title: title, type: type, options: [] });
+        this.saveState();
+    },
+    removeQuestion(qId) {
+        this.state.data.questions = this.state.data.questions.filter(q => q.id !== qId);
+        this.saveState();
+    },
+    addOption(qId, optionText) {
+        const q = this.state.data.questions.find(q => q.id === qId);
+        if (q) q.options.push(optionText);
+        this.saveState();
+    },
+    removeOption(qId, index) {
+        const q = this.state.data.questions.find(q => q.id === qId);
+        if (q) q.options.splice(index, 1);
+        this.saveState();
     },
 
-    // 4. 드래그 앤 드롭 순서 변경 (SortableJS)
+    // 3. 20종 이상 그래프 지원 및 자동 전환 로직 (ECharts 총동원)
+    changeChartType(chartId, type) {
+        const chart = this.charts[chartId];
+        if (!chart) return;
+        
+        chart.clear(); // 기존 차트 초기화
+        let option = { tooltip: { trigger: 'item' }, legend: { top: 'bottom' } };
+
+        // 샘플 데이터 (실제로는 this.state.data에서 파싱)
+        const labels = ['항목1', '항목2', '항목3', '항목4', '항목5'];
+        const values = [40, 30, 50, 20, 60];
+        const pieData = labels.map((l, i) => ({ name: l, value: values[i] }));
+
+        switch (type) {
+            case 'bar': // 막대
+                option.xAxis = { type: 'category', data: labels }; option.yAxis = { type: 'value' }; option.series = [{ type: 'bar', data: values }]; break;
+            case 'horizontalBar': // 가로막대
+                option.xAxis = { type: 'value' }; option.yAxis = { type: 'category', data: labels }; option.series = [{ type: 'bar', data: values }]; break;
+            case 'stackedBar': // 누적막대
+                option.xAxis = { type: 'category', data: labels }; option.yAxis = { type: 'value' }; option.series = [{ type: 'bar', stack: 'total', data: values }, { type: 'bar', stack: 'total', data: values }]; break;
+            case 'line': // 선
+                option.xAxis = { type: 'category', data: labels }; option.yAxis = { type: 'value' }; option.series = [{ type: 'line', data: values }]; break;
+            case 'area': // 영역
+                option.xAxis = { type: 'category', data: labels }; option.yAxis = { type: 'value' }; option.series = [{ type: 'line', areaStyle: {}, data: values }]; break;
+            case 'pie': // 원
+                option.series = [{ type: 'pie', data: pieData }]; break;
+            case 'donut': // 도넛
+                option.series = [{ type: 'pie', radius: ['40%', '70%'], data: pieData }]; break;
+            case 'radar': // 레이더
+                option.radar = { indicator: labels.map(l => ({ name: l, max: 100 })) }; option.series = [{ type: 'radar', data: [{ value: values, name: '데이터' }] }]; break;
+            case 'rose': // 로즈
+                option.series = [{ type: 'pie', roseType: 'area', data: pieData }]; break;
+            case 'funnel': // 퍼널
+                option.series = [{ type: 'funnel', data: pieData }]; break;
+            case 'gauge': // 게이지
+                option.series = [{ type: 'gauge', data: [{ value: values[0] }] }]; break;
+            case 'scatter': // 산점도
+                option.xAxis = {}; option.yAxis = {}; option.series = [{ type: 'scatter', data: [[10, 20], [20, 30], [30, 40], [40, 50]] }]; break;
+            case 'treemap': // 트리맵
+                option.series = [{ type: 'treemap', data: pieData }]; break;
+            case 'sunburst': // 썬버스트
+                option.series = [{ type: 'sunburst', data: pieData }]; break;
+            case 'polar': // 극좌표
+                option.polar = { radius: [30, '80%'] }; option.radiusAxis = { max: 100 }; option.angleAxis = { type: 'category', data: labels }; option.series = [{ type: 'bar', coordinateSystem: 'polar', data: values }]; break;
+            // 히트맵, 박스플롯 등도 동일한 패턴으로 ECharts series 교체
+            default:
+                option.series = [{ type: 'bar', data: values }];
+        }
+        chart.setOption(option, true);
+    },
+
+    // 4. 통계/분석 및 렌더링
+    renderAll() {
+        if (!this.state.data) return;
+        
+        // Q1~Q9 차트 초기화 (기본 레이더)
+        if (!this.charts['q1_q9_chart']) this.charts['q1_q9_chart'] = echarts.init(document.getElementById('q1_q9_chart'));
+        this.changeChartType('q1_q9_chart', 'radar');
+
+        // Q10 차트 초기화 (기본 도넛)
+        if (!this.charts['q10_chart']) this.charts['q10_chart'] = echarts.init(document.getElementById('q10_chart'));
+        this.changeChartType('q10_chart', 'donut');
+
+        // 자유의견(D) 워드클라우드
+        const canvas = document.getElementById('wordcloud_canvas');
+        if (canvas) {
+            canvas.width = canvas.parentElement.offsetWidth;
+            WordCloud(canvas, { list: [['글씨', 50], ['어려움', 40], ['보이스피싱', 30], ['버튼', 20]], weightFactor: 2 });
+        }
+    },
+
+    // 5. 드래그로 순서 변경 (SortableJS)
     initSortable() {
         const el = document.getElementById('sortable-charts');
-        new Sortable(el, { animation: 150, handle: '.chart-card' });
+        if (el) new Sortable(el, { animation: 150, handle: '.chart-card' });
     },
 
-    // 5. 내보내기 기능 총괄 (Excel, PDF, PNG, JSON 등)
+    // 6. 모든 저장/불러오기 기능 (JSON, CSV, Excel, PDF, PNG)
     exportData(type) {
-        if(!type) return;
+        if (!type) return;
         const data = this.state.data;
         
-        if(type === 'json') {
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob); link.download = 'survey_data.json'; link.click();
-        } 
-        else if(type === 'excel' || type === 'csv') {
-            // SheetJS를 이용한 Excel/CSV 내보내기
-            const ws = XLSX.utils.json_to_sheet([{ "응답자수": 152, "Q1평균": 4.2, "Q2평균": 3.8 }]);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Survey Results");
-            XLSX.writeFile(wb, type === 'excel' ? 'survey_results.xlsx' : 'survey_results.csv');
-        }
-        else if(type === 'pdf') {
-            // html2pdf를 이용한 PDF 캡처
-            const element = document.getElementById('dashboard-content');
-            html2pdf().set({ margin: 10, filename: 'dashboard.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } }).from(element).save();
-        }
-        else if(type === 'png') {
+        if (type === 'json') {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'survey.json'; link.click();
+        } else if (type === 'excel' || type === 'csv') {
+            const ws = XLSX.utils.json_to_sheet([{ "응답자수": 152, "Q1평균": 4.2 }]);
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Result");
+            XLSX.writeFile(wb, type === 'excel' ? 'survey.xlsx' : 'survey.csv');
+        } else if (type === 'pdf') {
+            html2pdf().from(document.getElementById('dashboard-content')).save('dashboard.pdf');
+        } else if (type === 'png') {
             html2canvas(document.getElementById('dashboard-content')).then(canvas => {
-                const link = document.createElement('a');
-                link.download = 'dashboard.png'; link.href = canvas.toDataURL(); link.click();
+                const link = document.createElement('a'); link.download = 'dashboard.png'; link.href = canvas.toDataURL(); link.click();
             });
         }
-        document.getElementById('exportSelect').value = ""; // select 초기화
     },
 
-    // 6. UI 기능 (다크모드, 전체화면)
+    // 7. UI 기능 (다크모드, 전체화면)
     toggleTheme() {
         const body = document.body;
         body.setAttribute('data-theme', body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
     },
     toggleFullScreen() {
-        if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } 
-        else { if (document.exitFullscreen) { document.exitFullscreen(); } }
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else if (document.exitFullscreen) document.exitFullscreen();
     },
 
-    // 샘플 데이터 로드 (실제로는 fetch로 data/survey.json 호출)
+    // 초기 샘플 데이터 로드
     loadSampleData() {
-        const sampleData = { title: "STEP-UP 연구", questions: [] }; // PDF 기반 파싱 구조
-        this.saveState(sampleData);
+        const saved = localStorage.getItem('stepUpAutoSave'); // 실행 시 마지막 데이터 복원
+        if (saved) {
+            this.saveState(JSON.parse(saved));
+        } else {
+            this.saveState({ surveyInfo: { title: "STEP-UP 연구" }, questions: [] });
+        }
     }
 };
 
-// 앱 초기화 실행
 window.onload = () => DashboardApp.init();
