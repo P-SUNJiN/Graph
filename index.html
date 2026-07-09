@@ -1,1 +1,1050 @@
+/data/data/com.termux/files/home/meal.htm<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>설문조사 결과 대시보드</title>
 
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:"Pretendard",sans-serif;
+}
+
+body{
+background:#eef3f9;
+color:#222;
+}
+
+header{
+background:#2563eb;
+color:white;
+padding:20px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+header h1{
+font-size:30px;
+}
+
+button{
+cursor:pointer;
+border:none;
+padding:10px 18px;
+border-radius:10px;
+background:#2563eb;
+color:white;
+font-size:15px;
+margin:5px;
+transition:.3s;
+}
+
+button:hover{
+transform:scale(1.05);
+}
+
+.container{
+display:grid;
+grid-template-columns:330px 1fr;
+height:calc(100vh - 80px);
+}
+
+.sidebar{
+background:white;
+overflow:auto;
+padding:20px;
+border-right:1px solid #ddd;
+}
+
+.main{
+padding:20px;
+overflow:auto;
+}
+
+.card{
+background:white;
+padding:18px;
+border-radius:18px;
+margin-bottom:18px;
+box-shadow:0 10px 25px rgba(0,0,0,.06);
+}
+
+.card h2{
+margin-bottom:10px;
+}
+
+input,
+select,
+textarea{
+
+width:100%;
+padding:10px;
+margin-top:6px;
+margin-bottom:12px;
+
+border:1px solid #ccc;
+border-radius:8px;
+
+font-size:15px;
+
+}
+
+#chart{
+
+width:100%;
+height:600px;
+
+}
+
+.statGrid{
+
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:15px;
+margin-bottom:20px;
+
+}
+
+.stat{
+
+background:white;
+padding:20px;
+border-radius:18px;
+text-align:center;
+box-shadow:0 10px 20px rgba(0,0,0,.06);
+
+}
+
+.stat h3{
+
+font-size:14px;
+margin-bottom:10px;
+
+}
+
+.stat p{
+
+font-size:28px;
+font-weight:bold;
+
+}
+
+.dark{
+
+background:#101418;
+color:white;
+
+}
+
+.dark .card,
+.dark .sidebar,
+.dark .stat{
+
+background:#1e293b;
+color:white;
+
+}
+
+.dark input,
+.dark textarea,
+.dark select{
+
+background:#334155;
+color:white;
+border:1px solid #475569;
+
+}
+
+.menuButton{
+
+width:100%;
+margin-bottom:8px;
+
+}
+
+.editTitle{
+
+font-size:28px;
+font-weight:bold;
+outline:none;
+padding:6px;
+
+}
+
+.editSub{
+
+font-size:16px;
+color:#777;
+outline:none;
+padding:6px;
+
+}
+
+.dark .editSub{
+
+color:#bbb;
+
+}
+
+table{
+
+width:100%;
+border-collapse:collapse;
+
+}
+
+td,th{
+
+padding:10px;
+border:1px solid #ddd;
+
+}
+
+.dark td,
+.dark th{
+
+border:1px solid #555;
+
+}
+
+.saveBar{
+
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+margin-top:10px;
+
+}
+
+footer{
+
+padding:15px;
+text-align:center;
+font-size:13px;
+opacity:.6;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<div>
+
+<h1 contenteditable="true" id="dashboardTitle">
+
+노인 스마트폰 설문조사 결과
+
+</h1>
+
+<div contenteditable="true" id="dashboardSub">
+
+STEP-UP 프로젝트
+
+</div>
+
+</div>
+
+<div>
+
+<button onclick="toggleDark()">
+
+🌙 다크모드
+
+</button>
+
+<button onclick="fullscreen()">
+
+📺 발표모드
+
+</button>
+
+</div>
+
+</header>
+
+<div class="container">
+
+<div class="sidebar">
+
+<div class="card">
+
+<h2>그래프 종류</h2>
+
+<select id="graphType">
+
+<option value="bar">막대그래프</option>
+
+<option value="line">선그래프</option>
+
+<option value="pie">원그래프</option>
+
+<option value="doughnut">도넛</option>
+
+<option value="radar">레이더</option>
+
+<option value="scatter">산점도</option>
+
+<option value="treemap">트리맵</option>
+
+<option value="funnel">퍼널</option>
+
+<option value="gauge">게이지</option>
+
+<option value="polar">극좌표</option>
+
+</select>
+
+<button class="menuButton">
+
+그래프 적용
+
+</button>
+
+</div>
+
+<div class="card">
+
+<h2>
+
+문항 선택
+
+</h2>
+
+<div id="questionButtons">
+
+</div>
+
+</div>
+
+<div class="card">
+
+<h2>
+
+응답 수정
+
+</h2>
+
+<label>
+
+문항 제목
+
+</label>
+
+<input id="questionTitle">
+
+<label>
+
+항목 이름
+
+</label>
+
+<textarea id="labels"></textarea>
+
+<label>
+
+응답 수
+
+</label>
+
+<textarea id="values"></textarea>
+
+<button id="saveQuestion">
+
+저장
+
+</button>
+
+</div>
+
+<div class="card">
+
+<h2>
+
+파일
+
+</h2>
+
+<div class="saveBar">
+
+<button>
+
+JSON 저장
+
+</button>
+
+<button>
+
+JSON 열기
+
+</button>
+
+<button>
+
+PNG 저장
+
+</button>
+
+<button>
+
+CSV 가져오기
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="main">
+
+<div class="statGrid">
+
+<div class="stat">
+
+<h3>
+
+총 응답자
+
+</h3>
+
+<p id="totalPeople">
+
+0
+
+</p>
+
+</div>
+
+<div class="stat">
+
+<h3>
+
+불편함 있음
+
+</h3>
+
+<p id="yesRate">
+
+0%
+
+</p>
+
+</div>
+
+<div class="stat">
+
+<h3>
+
+불편함 없음
+
+</h3>
+
+<p id="noRate">
+
+0%
+
+</p>
+
+</div>
+
+<div class="stat">
+
+<h3>
+
+현재 문항
+
+</h3>
+
+<p id="currentQuestion">
+
+Q1
+
+</p>
+
+</div>
+
+</div>
+
+<div class="card">
+
+<div id="chart"></div>
+
+</div>
+
+<div class="card">
+
+<h2>
+
+원본 데이터
+
+</h2>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>항목</th>
+
+<th>응답수</th>
+
+<th>비율</th>
+
+</tr>
+
+</thead>
+
+<tbody id="tableBody">
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+<footer>
+
+Survey Dashboard v2
+
+</footer>
+
+<script>
+
+const surveyData={
+
+Q1:{
+title:"글씨가 너무 작아서 읽기 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[30,20]
+},
+
+Q2:{
+title:"알림음이 작아서 놓친다",
+labels:["불편함 있음","불편함 없음"],
+values:[28,22]
+},
+
+Q3:{
+title:"버튼이 많아 혼란스럽다",
+labels:["불편함 있음","불편함 없음"],
+values:[31,19]
+},
+
+Q4:{
+title:"터치하기 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[27,23]
+},
+
+Q5:{
+title:"사기 문자·악성앱이 걱정된다",
+labels:["불편함 있음","불편함 없음"],
+values:[35,15]
+},
+
+Q6:{
+title:"설정 변경이 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[33,17]
+},
+
+Q7:{
+title:"오류를 해결하기 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[34,16]
+},
+
+Q8:{
+title:"정보 검색이 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[26,24]
+},
+
+Q9:{
+title:"결제 및 구독이 어렵다",
+labels:["불편함 있음","불편함 없음"],
+values:[24,26]
+},
+
+Q10:{
+title:"가장 필요한 도움",
+labels:[
+"화면 읽기",
+"글씨 확대",
+"사기 방지",
+"단계별 안내",
+"음성 도움",
+"기타"
+],
+values:[15,18,9,25,12,4]
+}
+
+};
+
+let current="Q1";
+
+const chart=echarts.init(document.getElementById("chart"));
+
+function makeButtons(){
+
+const area=document.getElementById("questionButtons");
+
+area.innerHTML="";
+
+Object.keys(surveyData).forEach(q=>{
+
+const b=document.createElement("button");
+
+b.className="menuButton";
+
+b.innerText=q;
+
+b.onclick=()=>{
+
+current=q;
+
+loadEditor();
+
+draw();
+
+};
+
+area.appendChild(b);
+
+});
+
+}
+
+function loadEditor(){
+
+const d=surveyData[current];
+
+questionTitle.value=d.title;
+
+labels.value=d.labels.join(",");
+
+values.value=d.values.join(",");
+
+currentQuestion.innerText=current;
+
+}
+
+function updateTable(){
+
+const body=document.getElementById("tableBody");
+
+body.innerHTML="";
+
+const d=surveyData[current];
+
+const sum=d.values.reduce((a,b)=>a+b,0);
+
+d.labels.forEach((l,i)=>{
+
+const tr=document.createElement("tr");
+
+const per=((d.values[i]/sum)*100).toFixed(1);
+
+tr.innerHTML=`
+
+<td>${l}</td>
+
+<td>${d.values[i]}</td>
+
+<td>${per}%</td>
+
+`;
+
+body.appendChild(tr);
+
+});
+
+totalPeople.innerText=sum;
+
+if(d.values.length==2){
+
+yesRate.innerText=((d.values[0]/sum)*100).toFixed(1)+"%";
+
+noRate.innerText=((d.values[1]/sum)*100).toFixed(1)+"%";
+
+}else{
+
+yesRate.innerText="-";
+
+noRate.innerText="-";
+
+}
+
+}
+
+function draw(){
+
+const d=surveyData[current];
+
+const type=document.getElementById("graphType").value;
+
+let option={};
+
+if(type==="bar"){
+
+option={
+
+tooltip:{},
+
+xAxis:{type:"category",data:d.labels},
+
+yAxis:{type:"value"},
+
+series:[{
+
+type:"bar",
+
+data:d.values,
+
+label:{show:true}
+
+}]
+
+};
+
+}
+
+else if(type==="line"){
+
+option={
+
+tooltip:{},
+
+xAxis:{type:"category",data:d.labels},
+
+yAxis:{},
+
+series:[{
+
+type:"line",
+
+smooth:true,
+
+data:d.values,
+
+label:{show:true}
+
+}]
+
+};
+
+}
+
+else if(type==="pie"){
+
+option={
+
+tooltip:{},
+
+series:[{
+
+type:"pie",
+
+radius:"70%",
+
+data:d.labels.map((v,i)=>({
+
+name:v,
+
+value:d.values[i]
+
+})),
+
+label:{show:true}
+
+}]
+
+};
+
+}
+
+else if(type==="doughnut"){
+
+option={
+
+tooltip:{},
+
+series:[{
+
+type:"pie",
+
+radius:["45%","75%"],
+
+data:d.labels.map((v,i)=>({
+
+name:v,
+
+value:d.values[i]
+
+})),
+
+label:{show:true}
+
+}]
+
+};
+
+  }
+
+else if(type==="radar"){
+
+option={
+
+tooltip:{},
+
+radar:{
+
+indicator:d.labels.map((v,i)=>({
+
+name:v,
+
+max:Math.max(...d.values)+10
+
+}))
+
+},
+
+series:[{
+
+type:"radar",
+
+data:[{
+
+value:d.values,
+
+name:d.title
+
+}]
+
+}]
+
+};
+
+}
+
+else if(type==="scatter"){
+
+option={
+
+tooltip:{},
+
+xAxis:{},
+
+yAxis:{},
+
+series:[{
+
+type:"scatter",
+
+symbolSize:18,
+
+data:d.values.map((v,i)=>[i+1,v])
+
+}]
+
+};
+
+}
+
+else if(type==="treemap"){
+
+option={
+
+tooltip:{},
+
+series:[{
+
+type:"treemap",
+
+data:d.labels.map((v,i)=>({
+
+name:v,
+
+value:d.values[i]
+
+}))
+
+}]
+
+};
+
+}
+
+else if(type==="funnel"){
+
+option={
+
+tooltip:{},
+
+series:[{
+
+type:"funnel",
+
+data:d.labels.map((v,i)=>({
+
+name:v,
+
+value:d.values[i]
+
+}))
+
+}]
+
+};
+
+}
+
+else if(type==="gauge"){
+
+const avg=d.values.reduce((a,b)=>a+b,0)/d.values.length;
+
+option={
+
+series:[{
+
+type:"gauge",
+
+progress:{show:true},
+
+detail:{
+
+formatter:"{value}"
+
+},
+
+data:[{
+
+value:avg,
+
+name:d.title
+
+}]
+
+}]
+
+};
+
+}
+
+else if(type==="polar"){
+
+option={
+
+angleAxis:{},
+
+radiusAxis:{type:"category",data:d.labels},
+
+polar:{},
+
+series:[{
+
+type:"bar",
+
+coordinateSystem:"polar",
+
+data:d.values
+
+}]
+
+};
+
+}
+
+chart.setOption(option,true);
+
+updateTable();
+
+}
+
+document.getElementById("graphType").onchange=draw;
+
+document.getElementById("saveQuestion").onclick=function(){
+
+surveyData[current].title=
+
+questionTitle.value;
+
+surveyData[current].labels=
+
+labels.value
+
+.split(",")
+
+.map(v=>v.trim());
+
+surveyData[current].values=
+
+values.value
+
+.split(",")
+
+.map(Number);
+
+draw();
+
+};
+
+function toggleDark(){
+
+document.body.classList.toggle("dark");
+
+chart.resize();
+
+}
+
+function fullscreen(){
+
+if(!document.fullscreenElement){
+
+document.documentElement.requestFullscreen();
+
+}else{
+
+document.exitFullscreen();
+
+}
+
+}
+
+window.addEventListener(
+
+"resize",
+
+()=>chart.resize()
+
+);
+
+makeButtons();
+
+loadEditor();
+
+draw();
+
+</script>
+
+</body>
+
+</html>
