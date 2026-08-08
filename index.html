@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>설문조사 결과 대시보드</title>
+<title>실험 결과 대시보드</title>
 <style>
 /* ============ 색상 토큰 (라이트/다크) ============ */
 :root{
@@ -107,19 +107,22 @@ main{max-width:1240px;margin:0 auto;padding:28px 20px 60px}
   padding:20px 22px 18px;box-shadow:0 1px 2px rgba(0,0,0,.04);
   display:flex;flex-direction:column;gap:14px;
 }
-.card-top{display:flex;flex-direction:column;gap:10px}
+.card-top{display:flex;flex-direction:column;gap:8px}
 .card-top .row1{display:flex;align-items:flex-start;gap:10px}
 .card-top h3{font-size:16px;font-weight:700;flex:1;letter-spacing:-.2px}
+.q-note-view{font-size:12.5px;color:var(--muted)}
+.q-note-view:empty{display:none}
 .badge{
   flex:none;font-size:12px;font-weight:600;color:var(--ink2);
   background:var(--wash);border-radius:999px;padding:3px 10px;margin-top:1px;
-  font-variant-numeric:tabular-nums;
+  font-variant-numeric:tabular-nums;white-space:nowrap;
 }
-.q-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.badge:empty{display:none}
+.q-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px}
 .q-controls select{flex:none}
 .icon-btn{
   appearance:none;border:1px solid var(--border);background:var(--surface);color:var(--ink2);
-  width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:13px;line-height:1;
+  width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:13px;line-height:1;flex:none;
 }
 .icon-btn:hover{background:var(--wash)}
 .icon-btn.del:hover{color:var(--danger);border-color:var(--danger)}
@@ -148,16 +151,17 @@ svg [data-tip]:hover{opacity:.82}
 .data-table td{padding:8px 10px;border-bottom:1px solid var(--grid)}
 .data-table th.num,.data-table td.num{text-align:right;font-variant-numeric:tabular-nums}
 .data-table td.num{color:var(--ink2)}
-.data-table .bar-cell{width:34%;min-width:110px}
+.data-table .bar-cell{width:32%;min-width:100px}
 .data-table .tbar-track{background:var(--wash);border-radius:4px;height:14px;overflow:hidden}
 .data-table .tbar{height:100%;border-radius:4px 0 0 4px}
 .data-table tfoot td{border-bottom:none;font-weight:700;color:var(--ink)}
 .data-table tfoot td.num{color:var(--ink)}
 
 .chart-msg{
-  padding:28px 10px;text-align:center;color:var(--muted);font-size:13px;
+  padding:24px 16px;text-align:center;color:var(--muted);font-size:13px;line-height:1.7;
   border:1px dashed var(--grid);border-radius:10px;
 }
+.chart-msg .btn{margin-top:10px}
 
 /* ============ 편집 UI ============ */
 input,select{
@@ -169,7 +173,9 @@ input[type="color"]{
   padding:2px;width:34px;height:30px;cursor:pointer;border-radius:7px;flex:none;
 }
 input.q-title-input{width:100%;font-weight:700;font-size:15px}
-input.item-count{width:86px;text-align:right;font-variant-numeric:tabular-nums}
+input.q-note-input{width:100%;font-size:12.5px;padding:5px 10px}
+input.q-unit{width:78px}
+input.item-count{width:92px;text-align:right;font-variant-numeric:tabular-nums}
 
 .items-editor{
   border-top:1px dashed var(--grid);padding-top:12px;
@@ -224,7 +230,7 @@ body.edit .view-only{display:none !important}
   <button class="btn primary edit-only" data-action="add-q">＋ 질문 추가</button>
   <button class="btn" data-action="export">JSON 내보내기</button>
   <button class="btn" data-action="import">JSON 불러오기</button>
-  <button class="btn edit-only" data-action="sample">예시 데이터</button>
+  <button class="btn edit-only" data-action="sample">기본 데이터</button>
   <button class="btn danger-text edit-only" data-action="reset">전체 초기화</button>
   <button class="btn" data-action="theme" title="라이트/다크 전환">🌓</button>
   <input type="file" id="importFile" accept=".json,application/json" hidden>
@@ -240,8 +246,10 @@ body.edit .view-only{display:none !important}
 <script>
 "use strict";
 
-/* ============ 검증된 기본 팔레트 (범주형 8색, 고정 순서) ============ */
-const CAT = ["#2a78d6","#1baf7a","#eda100","#008300","#4a3aa7","#e34948","#e87ba4","#eb6834"];
+/* ============ 검증된 팔레트 ============ */
+const CAT  = ["#2a78d6","#1baf7a","#eda100","#008300","#4a3aa7","#e34948","#e87ba4","#eb6834"]; // 범주형 (고정 순서)
+const ORD  = ["#86b6ef","#3987e5","#184f95"];  // 순서형 (약 → 강)
+const GOOD = "#0ca30c", BAD = "#d03b3b";        // 상태 (정답/오답)
 
 const CHART_TYPES = [
   ["barV","세로 막대"],
@@ -252,45 +260,78 @@ const CHART_TYPES = [
   ["radar","레이더 차트"],
   ["table","표"],
 ];
+const MODES = [["count","응답 수 (비율 표시)"],["value","평균·측정값"]];
 
-const KEY = "survey-dashboard-data-v1";
+const KEY = "survey-dashboard-data-v2";
 let _uid = 1;
 const uid = () => "q" + (_uid++) + "_" + Date.now().toString(36);
 
-/* ============ 예시 데이터 ============ */
+/* ============ 기본 데이터 — 고령층 스마트폰 UI 실험 결과 ============ */
 function sampleData(){
+  const ord3 = (a, b, c) => [
+    { label:a[0], count:a[1], color:ORD[0] },
+    { label:b[0], count:b[1], color:ORD[1] },
+    { label:c[0], count:c[1], color:ORD[2] },
+  ];
+  const ab = (a, b) => [
+    { label:a[0], count:a[1], color:CAT[0] },
+    { label:b[0], count:b[1], color:CAT[1] },
+  ];
   return normalize({
-    title: "STEP-UP 초고령층 스마트폰 사용 실태 조사",
-    subtitle: "2026년 1학기 탐구 프로젝트 · 응답자 44명",
+    title: "고령층 스마트폰 UI·보이스피싱 대응 실험 결과",
+    subtitle: "피험자 4명(박시환·박선진·유찬·채민) · 7개 실험 · 총 272회 시행",
     questions: [
-      { title: "스마트폰 사용 중 가장 어려운 점은 무엇인가요?", type: "pie",
-        items: [
-          { label:"글씨가 작다", count:12 },
-          { label:"메뉴가 복잡하다", count:18 },
-          { label:"용어가 어렵다", count:9 },
-          { label:"오작동이 잦다", count:5 },
-        ]},
-      { title: "하루 평균 스마트폰 사용 시간은?", type: "barV",
-        items: [
-          { label:"1시간 미만", count:8 },
-          { label:"1~3시간", count:14 },
-          { label:"3~5시간", count:12 },
-          { label:"5시간 이상", count:6 },
-        ]},
-      { title: "가장 자주 사용하는 기능은?", type: "barH",
-        items: [
-          { label:"전화·문자", count:22 },
-          { label:"카카오톡", count:15 },
-          { label:"유튜브", count:9 },
-          { label:"사진 촬영", count:7 },
-          { label:"인터넷 검색", count:5 },
-        ]},
-      { title: "스마트폰 교육이 필요하다고 생각하시나요?", type: "table",
-        items: [
-          { label:"매우 필요하다", count:20 },
-          { label:"필요하다", count:16 },
-          { label:"보통이다", count:5 },
-          { label:"필요 없다", count:3 },
+      { title:"글씨 크기별 문장 인식 정확도", note:"노안 필터 '중' 고정 · 조건당 12회 시행", type:"barV", mode:"value", unit:"%",
+        items: ord3(["10pt",52.1], ["14pt",75.0], ["20pt",89.6]) },
+
+      { title:"글씨 크기별 과제 수행 시간", note:"짧을수록 좋음 · 조건당 12회 시행", type:"line", mode:"value", unit:"초",
+        items: ord3(["10pt",5.05], ["14pt",6.68], ["20pt",5.71]) },
+
+      { title:"음성 주파수별 안내 음성 인식 정확도", note:"조건당 11회 시행", type:"barV", mode:"value", unit:"%",
+        items: ord3(["저음",70.5], ["보통",86.4], ["고음",93.2]) },
+
+      { title:"음성 주파수별 과제 수행 시간", note:"세 조건 간 차이 거의 없음 · 조건당 11회 시행", type:"barV", mode:"value", unit:"초",
+        items: ord3(["저음",5.79], ["보통",5.81], ["고음",6.09]) },
+
+      { title:"문장 난이도별 정답률", note:"조건당 12회 시행", type:"barV", mode:"value", unit:"%",
+        items: ord3(["쉬움",100.0], ["보통",91.7], ["어려움",91.7]) },
+
+      { title:"문장 난이도별 과제 수행 시간", note:"어려운 문장에서 시간이 크게 늘어남 · 조건당 12회 시행", type:"barV", mode:"value", unit:"초",
+        items: ord3(["쉬움",5.43], ["보통",5.18], ["어려움",7.94]) },
+
+      { title:"버튼 개수별 목표 버튼 탐색 시간", note:"오조작은 전 조건 0회 · 조건당 12회 시행", type:"line", mode:"value", unit:"초",
+        items: ord3(["2개",1.15], ["4개",1.26], ["8개",2.80]) },
+
+      { title:"보이스피싱 경고 알림 유무별 사기 판별 정답률", note:"경고 OFF 36회 · 경고 ON 33회 시행", type:"barH", mode:"value", unit:"%",
+        items: ab(["경고 OFF",77.8], ["경고 ON",97.0]) },
+
+      { title:"보이스피싱 경고 알림 유무별 판단 소요 시간", note:"경고가 있을 때 더 빠르게 판단 · 짧을수록 좋음", type:"barH", mode:"value", unit:"초",
+        items: ab(["경고 OFF",2.68], ["경고 ON",1.70]) },
+
+      { title:"경고 알림 OFF — 판별 결과 분포", note:"총 36회 시행", type:"donut", mode:"count", unit:"회",
+        items:[{ label:"정답", count:28, color:GOOD }, { label:"오답", count:8, color:BAD }] },
+
+      { title:"경고 알림 ON — 판별 결과 분포", note:"총 33회 시행", type:"donut", mode:"count", unit:"회",
+        items:[{ label:"정답", count:32, color:GOOD }, { label:"오답", count:1, color:BAD }] },
+
+      { title:"AI 탐지 방식별 보이스피싱 판별 정확도", note:"방식당 11회 시행", type:"barH", mode:"value", unit:"%",
+        items: ab(["규칙 기반",60.0], ["LLM",79.5]) },
+
+      { title:"AI 요약 기능 유무별 내용 이해 정확도", note:"조건당 20회 시행", type:"barH", mode:"value", unit:"%",
+        items: ab(["요약 OFF",95.0], ["요약 ON",92.5]) },
+
+      { title:"AI 요약 기능 유무별 과제 수행 시간", note:"요약을 켜면 더 빠르게 파악 · 짧을수록 좋음", type:"barH", mode:"value", unit:"초",
+        items: ab(["요약 OFF",6.46], ["요약 ON",5.52]) },
+
+      { title:"실험별 시행 횟수", note:"전체 272회의 구성", type:"table", mode:"count", unit:"회",
+        items:[
+          { label:"보이스피싱", count:69, color:CAT[0] },
+          { label:"AI 요약", count:40, color:CAT[1] },
+          { label:"글씨 크기", count:36, color:CAT[2] },
+          { label:"문장 난이도", count:36, color:CAT[3] },
+          { label:"버튼 개수", count:36, color:CAT[4] },
+          { label:"음성 주파수", count:33, color:CAT[5] },
+          { label:"AI 정확도", count:22, color:CAT[6] },
         ]},
     ],
   });
@@ -307,7 +348,10 @@ function normalize(d){
     const nq = {
       id: q.id || uid(),
       title: String(q.title ?? "새 질문"),
+      note: String(q.note ?? ""),
       type: CHART_TYPES.some(t => t[0] === q.type) ? q.type : "barV",
+      mode: q.mode === "value" ? "value" : "count",
+      unit: String(q.unit ?? ""),
       items: [],
     };
     if (Array.isArray(q.items)) q.items.forEach((it, i) => {
@@ -342,12 +386,25 @@ function save(){
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const fmt = n => Number(n).toLocaleString("ko-KR", { maximumFractionDigits: 2 });
 const pctOf = (c, t) => t > 0 ? (c / t * 100) : 0;
-const pctStr = (c, t) => {
-  const p = pctOf(c, t);
-  return (Math.round(p * 10) / 10).toLocaleString("ko-KR", { maximumFractionDigits: 1 }) + "%";
-};
+const pctStr = (c, t) => (Math.round(pctOf(c, t) * 10) / 10).toLocaleString("ko-KR", { maximumFractionDigits: 1 }) + "%";
 const r2 = n => Math.round(n * 100) / 100;
 const total = q => q.items.reduce((s, it) => s + (Number(it.count) || 0), 0);
+const isCount = q => q.mode !== "value";
+
+/* 값 표기 — 단위 포함 */
+const vstr = (q, v) => fmt(v) + (q.unit || "");
+/* 배지 — 응답 수 모드는 합계, 측정값 모드는 단위 */
+function badgeText(q){
+  if (isCount(q)) return "합계 " + fmt(total(q)) + (q.unit || "");
+  return q.unit ? "단위 " + q.unit : "";
+}
+/* 툴팁 문구 */
+function tipAttr(q, it){
+  const body = isCount(q)
+    ? `${vstr(q, it.count)} (${pctStr(it.count, total(q))})`
+    : vstr(q, it.count);
+  return `data-tip="${esc(it.label)} · ${esc(body)}"`;
+}
 
 const _mctx = document.createElement("canvas").getContext("2d");
 function tw(text, size = 12, weight = 400){
@@ -380,19 +437,25 @@ function niceScale(maxVal){
   if (!(maxVal > 0)) return { max: 4, ticks: [0,1,2,3,4] };
   const rough = maxVal / 4;
   const pow = Math.pow(10, Math.floor(Math.log10(rough)));
-  let step = [1,2,2.5,5,10].map(c => c * pow).find(s => Math.ceil(maxVal / s) <= 5) || 10 * pow;
+  const step = [1,2,2.5,5,10].map(c => c * pow).find(s => Math.ceil(maxVal / s) <= 5) || 10 * pow;
   const top = Math.ceil(maxVal / step) * step;
   const ticks = [];
   for (let v = 0; v <= top + 1e-9; v += step) ticks.push(r2(v));
   return { max: top, ticks };
 }
-const tipAttr = (it, t) => `data-tip="${esc(it.label)} · ${fmt(it.count)} (${pctStr(it.count, t)})"`;
 
 /* ============ 차트 렌더러 (순수 SVG) ============ */
 
 function chartHTML(q){
   if (!q.items.length)
     return `<div class="chart-msg">아직 항목이 없습니다. 편집 모드에서 <b>＋ 항목 추가</b>를 눌러 데이터를 입력하세요.</div>`;
+  if ((q.type === "pie" || q.type === "donut") && !isCount(q))
+    return `<div class="chart-msg">
+      <b>평균·측정값</b>은 모두 더해도 전체가 되지 않기 때문에<br>
+      원그래프·도넛으로 그리면 실제보다 왜곡되어 보입니다.<br>
+      막대그래프로 비교하는 것을 권장합니다.
+      <button class="btn" data-action="to-bar">세로 막대로 보기</button>
+    </div>`;
   switch(q.type){
     case "barH":  return barH(q);
     case "pie":   return pieDonut(q, false);
@@ -406,8 +469,8 @@ function chartHTML(q){
 
 /* --- 세로 막대 --- */
 function barV(q){
-  const t = total(q), n = q.items.length;
-  const W = 640, H = 340, m = { t: 30, r: 14, b: 54, l: 46 };
+  const n = q.items.length;
+  const W = 640, H = 340, m = { t: 30, r: 14, b: 54, l: 48 };
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
   const sc = niceScale(Math.max(...q.items.map(i => i.count)));
   const band = pw / n, bw = Math.min(24, band * 0.55);
@@ -420,15 +483,15 @@ function barV(q){
     s += `<text x="${m.l-8}" y="${ty+4}" text-anchor="end" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${fmt(tv)}</text>`;
   }
   q.items.forEach((it, i) => {
-    const cx = m.t, x0 = r2(m.l + band * i + (band - bw) / 2);
+    const x0 = r2(m.l + band * i + (band - bw) / 2);
     const yTop = y(it.count), h = m.t + ph - yTop;
     const bx1 = r2(x0 + bw), byTop = r2(yTop), by0 = m.t + ph;
     if (h >= 4){
-      s += `<path ${tipAttr(it, t)} fill="${it.color}" d="M${x0},${by0} L${x0},${r2(byTop+4)} Q${x0},${byTop} ${r2(x0+4)},${byTop} L${r2(bx1-4)},${byTop} Q${bx1},${byTop} ${bx1},${r2(byTop+4)} L${bx1},${by0} Z"/>`;
+      s += `<path ${tipAttr(q, it)} fill="${it.color}" d="M${x0},${by0} L${x0},${r2(byTop+4)} Q${x0},${byTop} ${r2(x0+4)},${byTop} L${r2(bx1-4)},${byTop} Q${bx1},${byTop} ${bx1},${r2(byTop+4)} L${bx1},${by0} Z"/>`;
     } else if (h > 0){
-      s += `<rect ${tipAttr(it, t)} fill="${it.color}" x="${x0}" y="${byTop}" width="${bw}" height="${r2(h)}"/>`;
+      s += `<rect ${tipAttr(q, it)} fill="${it.color}" x="${x0}" y="${byTop}" width="${bw}" height="${r2(h)}"/>`;
     }
-    s += `<text x="${r2(x0+bw/2)}" y="${r2((h>0?byTop:by0)-7)}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink2)" style="font-variant-numeric:tabular-nums">${fmt(it.count)}</text>`;
+    s += `<text x="${r2(x0+bw/2)}" y="${r2((h>0?byTop:by0)-7)}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink2)" style="font-variant-numeric:tabular-nums">${esc(vstr(q, it.count))}</text>`;
     wrapLabel(it.label, band - 8).forEach((ln, li) => {
       s += `<text x="${r2(m.l + band*i + band/2)}" y="${by0 + 16 + li*14}" text-anchor="middle" font-size="12" fill="var(--muted)">${esc(ln)}</text>`;
     });
@@ -438,10 +501,10 @@ function barV(q){
 
 /* --- 가로 막대 --- */
 function barH(q){
-  const t = total(q), n = q.items.length;
+  const n = q.items.length;
   const rowH = 40, bh = 20;
   const labelW = Math.min(170, Math.max(...q.items.map(i => tw(i.label, 12.5))) + 18);
-  const W = 640, m = { t: 10, r: 62, b: 30, l: r2(labelW) };
+  const W = 640, m = { t: 10, r: 76, b: 30, l: r2(labelW) };
   const H = m.t + n * rowH + m.b;
   const pw = W - m.l - m.r;
   const sc = niceScale(Math.max(...q.items.map(i => i.count)));
@@ -458,17 +521,17 @@ function barH(q){
     const y0 = r2(cy - bh / 2), y1 = r2(cy + bh / 2);
     const xe = x(it.count), w = xe - m.l;
     if (w >= 4){
-      s += `<path ${tipAttr(it, t)} fill="${it.color}" d="M${m.l},${y0} L${r2(xe-4)},${y0} Q${r2(xe)},${y0} ${r2(xe)},${r2(y0+4)} L${r2(xe)},${r2(y1-4)} Q${r2(xe)},${y1} ${r2(xe-4)},${y1} L${m.l},${y1} Z"/>`;
+      s += `<path ${tipAttr(q, it)} fill="${it.color}" d="M${m.l},${y0} L${r2(xe-4)},${y0} Q${r2(xe)},${y0} ${r2(xe)},${r2(y0+4)} L${r2(xe)},${r2(y1-4)} Q${r2(xe)},${y1} ${r2(xe-4)},${y1} L${m.l},${y1} Z"/>`;
     } else if (w > 0){
-      s += `<rect ${tipAttr(it, t)} fill="${it.color}" x="${m.l}" y="${y0}" width="${r2(w)}" height="${bh}"/>`;
+      s += `<rect ${tipAttr(q, it)} fill="${it.color}" x="${m.l}" y="${y0}" width="${r2(w)}" height="${bh}"/>`;
     }
     s += `<text x="${m.l-9}" y="${r2(cy+4)}" text-anchor="end" font-size="12.5" fill="var(--ink)">${esc(truncate(it.label, labelW - 14, 12.5))}</text>`;
-    s += `<text x="${r2(Math.max(xe, m.l)+8)}" y="${r2(cy+4)}" font-size="12" font-weight="600" fill="var(--ink2)" style="font-variant-numeric:tabular-nums">${fmt(it.count)}</text>`;
+    s += `<text x="${r2(Math.max(xe, m.l)+8)}" y="${r2(cy+4)}" font-size="12" font-weight="600" fill="var(--ink2)" style="font-variant-numeric:tabular-nums">${esc(vstr(q, it.count))}</text>`;
   });
   return s + `</svg>`;
 }
 
-/* --- 원그래프 / 도넛 --- */
+/* --- 원그래프 / 도넛 (응답 수 모드 전용) --- */
 function pieDonut(q, donut){
   const t = total(q);
   const S = 300, cx = S/2, cy = S/2, r = 128, ri = donut ? 76 : 0;
@@ -482,9 +545,9 @@ function pieDonut(q, donut){
   } else if (visible.length === 1){
     const it = visible[0];
     if (donut)
-      svg += `<circle ${tipAttr(it, t)} cx="${cx}" cy="${cy}" r="${(r+ri)/2}" fill="none" stroke="${it.color}" stroke-width="${r-ri}"/>`;
+      svg += `<circle ${tipAttr(q, it)} cx="${cx}" cy="${cy}" r="${(r+ri)/2}" fill="none" stroke="${it.color}" stroke-width="${r-ri}"/>`;
     else
-      svg += `<circle ${tipAttr(it, t)} cx="${cx}" cy="${cy}" r="${r}" fill="${it.color}"/>`;
+      svg += `<circle ${tipAttr(q, it)} cx="${cx}" cy="${cy}" r="${r}" fill="${it.color}"/>`;
   } else {
     let a0 = -Math.PI / 2;
     for (const it of visible){
@@ -498,21 +561,21 @@ function pieDonut(q, donut){
       } else {
         d = `M${cx},${cy} L${x0o},${y0o} A${r},${r} 0 ${laf} 1 ${x1o},${y1o} Z`;
       }
-      svg += `<path ${tipAttr(it, t)} d="${d}" fill="${it.color}" stroke="var(--surface)" stroke-width="2" stroke-linejoin="round"/>`;
+      svg += `<path ${tipAttr(q, it)} d="${d}" fill="${it.color}" stroke="var(--surface)" stroke-width="2" stroke-linejoin="round"/>`;
       a0 = a1;
     }
   }
   if (donut && t > 0){
     svg += `<text x="${cx}" y="${cy-2}" text-anchor="middle" font-size="30" font-weight="600" fill="var(--ink)">${fmt(t)}</text>`;
-    svg += `<text x="${cx}" y="${cy+20}" text-anchor="middle" font-size="12" fill="var(--muted)">전체 응답</text>`;
+    svg += `<text x="${cx}" y="${cy+20}" text-anchor="middle" font-size="12" fill="var(--muted)">전체${q.unit?" ("+esc(q.unit)+")":""}</text>`;
   }
   svg += `</svg>`;
 
   const legend = q.items.map(it => `
-    <li ${tipAttr(it, t)}>
+    <li ${tipAttr(q, it)}>
       <span class="sw" style="background:${it.color}"></span>
       <span class="lb">${esc(it.label)}</span>
-      <span class="vl">${fmt(it.count)} · ${pctStr(it.count, t)}</span>
+      <span class="vl">${esc(vstr(q, it.count))} · ${pctStr(it.count, t)}</span>
     </li>`).join("");
 
   return `<div class="pie-wrap">${svg}<ul class="legend">${legend}</ul></div>`;
@@ -520,8 +583,8 @@ function pieDonut(q, donut){
 
 /* --- 꺾은선 --- */
 function lineChart(q){
-  const t = total(q), n = q.items.length;
-  const W = 640, H = 340, m = { t: 30, r: 20, b: 54, l: 46 };
+  const n = q.items.length;
+  const W = 640, H = 340, m = { t: 30, r: 24, b: 54, l: 48 };
   const pw = W - m.l - m.r, ph = H - m.t - m.b;
   const sc = niceScale(Math.max(...q.items.map(i => i.count)));
   const band = pw / n;
@@ -539,11 +602,13 @@ function lineChart(q){
     const d = q.items.map((it, i) => `${i ? "L" : "M"}${px(i)},${py(it.count)}`).join(" ");
     s += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
   }
+  /* 점이 적으면 전부 라벨, 많으면 끝점과 최대점만 */
   const maxIdx = q.items.reduce((mi, it, i) => it.count > q.items[mi].count ? i : mi, 0);
+  const labelAll = n <= 5;
   q.items.forEach((it, i) => {
-    s += `<circle ${tipAttr(it, t)} cx="${px(i)}" cy="${py(it.count)}" r="4.5" fill="${color}" stroke="var(--surface)" stroke-width="2"/>`;
-    if (i === n - 1 || i === maxIdx){
-      s += `<text x="${px(i)}" y="${r2(py(it.count)-11)}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink2)" style="font-variant-numeric:tabular-nums">${fmt(it.count)}</text>`;
+    s += `<circle ${tipAttr(q, it)} cx="${px(i)}" cy="${py(it.count)}" r="4.5" fill="${color}" stroke="var(--surface)" stroke-width="2"/>`;
+    if (labelAll || i === n - 1 || i === maxIdx){
+      s += `<text x="${px(i)}" y="${r2(py(it.count)-11)}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink2)" style="font-variant-numeric:tabular-nums">${esc(vstr(q, it.count))}</text>`;
     }
     wrapLabel(it.label, band - 8).forEach((ln, li) => {
       s += `<text x="${px(i)}" y="${m.t + ph + 16 + li*14}" text-anchor="middle" font-size="12" fill="var(--muted)">${esc(ln)}</text>`;
@@ -557,7 +622,6 @@ function radarChart(q){
   const n = q.items.length;
   if (n < 3)
     return `<div class="chart-msg">레이더 차트는 항목이 <b>3개 이상</b>일 때 표시됩니다. 항목을 추가하거나 다른 그래프를 선택하세요.</div>`;
-  const t = total(q);
   const W = 480, H = 380, cx = W/2, cy = H/2, R = 118;
   const sc = niceScale(Math.max(...q.items.map(i => i.count)));
   const ang = i => -Math.PI / 2 + (Math.PI * 2 * i) / n;
@@ -581,13 +645,13 @@ function radarChart(q){
   s += `<polygon points="${poly}" fill="${color}" fill-opacity="0.12" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>`;
   q.items.forEach((it, i) => {
     const [x, y] = pt(i, it.count);
-    s += `<circle ${tipAttr(it, t)} cx="${x}" cy="${y}" r="4.5" fill="${color}" stroke="var(--surface)" stroke-width="2"/>`;
+    s += `<circle ${tipAttr(q, it)} cx="${x}" cy="${y}" r="4.5" fill="${color}" stroke="var(--surface)" stroke-width="2"/>`;
     const a = ang(i);
     const lx = r2(cx + (R + 16) * Math.cos(a)), ly = r2(cy + (R + 16) * Math.sin(a));
     const anchor = Math.abs(Math.cos(a)) < 0.35 ? "middle" : (Math.cos(a) > 0 ? "start" : "end");
     const dy = Math.abs(Math.sin(a)) < 0.35 ? 4 : (Math.sin(a) > 0 ? 12 : -4);
     s += `<text x="${lx}" y="${r2(ly+dy)}" text-anchor="${anchor}" font-size="12" fill="var(--ink2)">${esc(truncate(it.label, 96))}</text>`;
-    s += `<text x="${lx}" y="${r2(ly+dy+14)}" text-anchor="${anchor}" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${fmt(it.count)}</text>`;
+    s += `<text x="${lx}" y="${r2(ly+dy+14)}" text-anchor="${anchor}" font-size="11" fill="var(--muted)" style="font-variant-numeric:tabular-nums">${esc(vstr(q, it.count))}</text>`;
   });
   return s + `</svg>`;
 }
@@ -596,17 +660,25 @@ function radarChart(q){
 function tableChart(q){
   const t = total(q);
   const maxC = Math.max(...q.items.map(i => i.count), 1);
+  const cnt = isCount(q);
+  const valHead = cnt ? "응답 수" : "값" + (q.unit ? ` (${esc(q.unit)})` : "");
+
   const rows = q.items.map(it => `
-    <tr ${tipAttr(it, t)}>
+    <tr ${tipAttr(q, it)}>
       <td>${esc(it.label)}</td>
-      <td class="num">${fmt(it.count)}</td>
-      <td class="num">${pctStr(it.count, t)}</td>
+      <td class="num">${cnt ? fmt(it.count) : esc(vstr(q, it.count))}</td>
+      ${cnt ? `<td class="num">${pctStr(it.count, t)}</td>` : ``}
       <td class="bar-cell"><div class="tbar-track"><div class="tbar" style="width:${r2(pctOf(it.count, maxC))}%;background:${it.color}"></div></div></td>
     </tr>`).join("");
+
+  const foot = cnt
+    ? `<tr><td>합계</td><td class="num">${fmt(t)}</td><td class="num">${t>0?"100%":"-"}</td><td></td></tr>`
+    : `<tr><td>평균</td><td class="num">${esc(vstr(q, r2(t / (q.items.length || 1))))}</td><td></td></tr>`;
+
   return `<table class="data-table">
-    <thead><tr><th>항목</th><th class="num">응답 수</th><th class="num">비율(%)</th><th class="bar-cell">분포</th></tr></thead>
+    <thead><tr><th>${cnt ? "항목" : "조건"}</th><th class="num">${valHead}</th>${cnt ? `<th class="num">비율(%)</th>` : ``}<th class="bar-cell">분포</th></tr></thead>
     <tbody>${rows}</tbody>
-    <tfoot><tr><td>합계</td><td class="num">${fmt(t)}</td><td class="num">${t>0?"100%":"-"}</td><td></td></tr></tfoot>
+    <tfoot>${foot}</tfoot>
   </table>`;
 }
 
@@ -618,27 +690,26 @@ function render(){
 }
 
 function renderHead(){
-  document.title = state.title || "설문조사 결과 대시보드";
+  document.title = state.title || "실험 결과 대시보드";
   document.getElementById("pageHead").innerHTML = `
     <h1 class="view-only">${esc(state.title)}</h1>
     <p class="subtitle view-only">${esc(state.subtitle)}</p>
-    <input class="title-input edit-only" data-field="title" value="${esc(state.title)}" placeholder="설문 제목을 입력하세요">
+    <input class="title-input edit-only" data-field="title" value="${esc(state.title)}" placeholder="제목을 입력하세요">
     <input class="subtitle-input edit-only" data-field="subtitle" value="${esc(state.subtitle)}" placeholder="부제 (선택) — 예: 조사 기간, 응답자 수">`;
 }
 
-function typeSelect(q){
-  return `<select class="q-type" aria-label="그래프 종류">` +
-    CHART_TYPES.map(([v, l]) => `<option value="${v}"${q.type===v?" selected":""}>${l}</option>`).join("") +
+function selectHTML(cls, opts, cur, label){
+  return `<select class="${cls}" aria-label="${label}">` +
+    opts.map(([v, l]) => `<option value="${v}"${cur===v?" selected":""}>${l}</option>`).join("") +
     `</select>`;
 }
 
 function cardHTML(q, idx){
-  const t = total(q);
   const items = q.items.map((it, i) => `
     <div class="item-row" data-idx="${i}">
       <input type="color" class="item-color" value="${it.color}" aria-label="항목 색상">
       <input class="item-label" value="${esc(it.label)}" placeholder="항목 이름">
-      <input class="item-count" type="number" min="0" step="any" value="${it.count}" aria-label="응답 수">
+      <input class="item-count" type="number" min="0" step="any" value="${it.count}" aria-label="값">
       <span class="arrows">
         <button class="icon-btn" data-action="up-item" title="위로">↑</button>
         <button class="icon-btn" data-action="down-item" title="아래로">↓</button>
@@ -651,11 +722,15 @@ function cardHTML(q, idx){
     <div class="card-top">
       <div class="row1">
         <h3 class="view-only">Q${idx+1}. ${esc(q.title)}</h3>
-        <input class="q-title-input edit-only" value="${esc(q.title)}" placeholder="질문을 입력하세요">
-        <span class="badge">응답 ${fmt(t)}</span>
+        <input class="q-title-input edit-only" value="${esc(q.title)}" placeholder="질문·항목명을 입력하세요">
+        <span class="badge">${esc(badgeText(q))}</span>
       </div>
+      <p class="q-note-view view-only">${esc(q.note)}</p>
+      <input class="q-note-input edit-only" value="${esc(q.note)}" placeholder="설명 (선택) — 예: 조건당 12회 시행">
       <div class="q-controls edit-only">
-        ${typeSelect(q)}
+        ${selectHTML("q-type", CHART_TYPES, q.type, "그래프 종류")}
+        ${selectHTML("q-mode", MODES, q.mode, "값 유형")}
+        <input class="q-unit" value="${esc(q.unit)}" placeholder="단위" aria-label="단위">
         <button class="icon-btn" data-action="up-q" title="질문 위로">↑</button>
         <button class="icon-btn" data-action="down-q" title="질문 아래로">↓</button>
         <button class="icon-btn del" data-action="del-q" title="질문 삭제">✕</button>
@@ -663,7 +738,7 @@ function cardHTML(q, idx){
     </div>
     <div class="chart-area">${chartHTML(q)}</div>
     <div class="items-editor edit-only">
-      <div class="ed-head">항목 · 응답 수 (입력 즉시 그래프에 반영)</div>
+      <div class="ed-head">${isCount(q) ? "항목 · 응답 수" : "조건 · 측정값"} (입력 즉시 그래프에 반영)</div>
       ${items}
       <button class="btn add-item-btn" data-action="add-item">＋ 항목 추가</button>
     </div>
@@ -675,7 +750,7 @@ function renderCards(){
   if (!state.questions.length){
     el.innerHTML = `
       <div class="empty-state">
-        <div>아직 질문이 없습니다.<br>편집 모드를 켜고 <b>질문 추가</b>를 눌러 설문 결과를 입력하세요.</div>
+        <div>아직 질문이 없습니다.<br>편집 모드를 켜고 <b>질문 추가</b>를 눌러 데이터를 입력하세요.</div>
         <button class="btn primary" data-action="add-q">＋ 질문 추가</button>
       </div>`;
     return;
@@ -689,7 +764,9 @@ function refreshChart(qid){
   const card = document.querySelector(`.card[data-id="${qid}"]`);
   if (!q || !card) return;
   card.querySelector(".chart-area").innerHTML = chartHTML(q);
-  card.querySelector(".badge").textContent = "응답 " + fmt(total(q));
+  card.querySelector(".badge").textContent = badgeText(q);
+  card.querySelector(".ed-head").textContent =
+    (isCount(q) ? "항목 · 응답 수" : "조건 · 측정값") + " (입력 즉시 그래프에 반영)";
 }
 
 /* ============ 이벤트 ============ */
@@ -705,16 +782,26 @@ document.addEventListener("input", e => {
     state[el.dataset.field] = el.value;
     const head = document.getElementById("pageHead");
     head.querySelector(el.dataset.field === "title" ? "h1" : ".subtitle").textContent = el.value;
-    if (el.dataset.field === "title") document.title = el.value || "설문조사 결과 대시보드";
+    if (el.dataset.field === "title") document.title = el.value || "실험 결과 대시보드";
     save(); return;
   }
   const q = findQ(el);
   if (!q) return;
+
   if (el.classList.contains("q-title-input")){
     q.title = el.value;
     const idx = state.questions.indexOf(q);
     el.closest(".card").querySelector("h3").textContent = `Q${idx+1}. ${el.value}`;
     save(); return;
+  }
+  if (el.classList.contains("q-note-input")){
+    q.note = el.value;
+    el.closest(".card").querySelector(".q-note-view").textContent = el.value;
+    save(); return;
+  }
+  if (el.classList.contains("q-unit")){
+    q.unit = el.value;
+    refreshChart(q.id); save(); return;
   }
   const row = el.closest(".item-row");
   if (row){
@@ -728,9 +815,12 @@ document.addEventListener("input", e => {
 });
 
 document.addEventListener("change", e => {
+  const q = findQ(e.target);
+  if (!q) return;
   if (e.target.classList.contains("q-type")){
-    const q = findQ(e.target);
-    if (q){ q.type = e.target.value; refreshChart(q.id); save(); }
+    q.type = e.target.value; refreshChart(q.id); save();
+  } else if (e.target.classList.contains("q-mode")){
+    q.mode = e.target.value; refreshChart(q.id); save();
   }
 });
 
@@ -745,7 +835,7 @@ document.addEventListener("click", e => {
 
   switch(act){
     case "add-q":{
-      const nq = { id: uid(), title: "새 질문", type: "barV",
+      const nq = { id: uid(), title: "새 질문", note: "", type: "barV", mode: "count", unit: "",
         items: [
           { label: "항목 1", count: 0, color: CAT[0] },
           { label: "항목 2", count: 0, color: CAT[1] },
@@ -756,8 +846,16 @@ document.addEventListener("click", e => {
       if (card){ card.scrollIntoView({ behavior: "smooth", block: "center" }); card.querySelector(".q-title-input")?.select(); }
       break;
     }
+    case "to-bar":
+      if (q){
+        q.type = "barV";
+        const sel = btn.closest(".card").querySelector(".q-type");
+        if (sel) sel.value = "barV";
+        refreshChart(q.id); save();
+      }
+      break;
     case "del-q":
-      if (q && confirm(`"${q.title}" 질문을 삭제할까요?`)){
+      if (q && confirm(`"${q.title}" 항목을 삭제할까요?`)){
         state.questions.splice(qi, 1); render(); save();
       }
       break;
@@ -787,7 +885,7 @@ document.addEventListener("click", e => {
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = (state.title || "survey").replace(/[\\/:*?"<>|]/g, "_") + ".json";
+      a.download = (state.title || "dashboard").replace(/[\\/:*?"<>|]/g, "_") + ".json";
       a.click();
       URL.revokeObjectURL(a.href);
       break;
@@ -796,12 +894,12 @@ document.addEventListener("click", e => {
       document.getElementById("importFile").click();
       break;
     case "sample":
-      if (confirm("현재 내용을 지우고 예시 데이터를 불러올까요?")){
+      if (confirm("현재 내용을 지우고 기본 데이터(실험 결과)를 다시 불러올까요?")){
         state = sampleData(); render(); save();
       }
       break;
     case "reset":
-      if (confirm("모든 질문과 데이터를 지우고 빈 설문으로 초기화할까요?\n(내보내기를 하지 않았다면 복구할 수 없습니다)")){
+      if (confirm("모든 내용을 지우고 빈 대시보드로 초기화할까요?\n(내보내기를 하지 않았다면 복구할 수 없습니다)")){
         state = blankData(); render(); save();
       }
       break;
