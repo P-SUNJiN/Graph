@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -952,11 +952,13 @@ document.addEventListener("mousemove", e => {
   }
 });
 
-/* 테마 복원 */
+/* 테마 복원 — 기본값은 라이트 모드(시스템 설정과 무관), 사용자가 토글을 누른 적이 있으면 그 선택을 기억 */
 try{
   const th = localStorage.getItem(KEY + ":theme");
-  if (th === "dark" || th === "light") document.documentElement.dataset.theme = th;
-}catch(e){}
+  document.documentElement.dataset.theme = (th === "dark") ? "dark" : "light";
+}catch(e){
+  document.documentElement.dataset.theme = "light";
+}
 
 render();
 </script>
