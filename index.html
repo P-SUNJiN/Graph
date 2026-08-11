@@ -198,11 +198,16 @@ input.q-title-input{width:100%;font-weight:700;font-size:15px}
 input.q-note-input{width:100%;font-size:12.5px;padding:5px 10px}
 input.q-unit{width:78px}
 input.item-count{width:92px;text-align:right;font-variant-numeric:tabular-nums}
+input.item-n{width:52px;text-align:right;font-variant-numeric:tabular-nums}
+input.item-median,input.item-sd{width:76px;text-align:right;font-variant-numeric:tabular-nums}
 
 .items-editor{
   border-top:1px dashed var(--grid);padding-top:12px;
   display:flex;flex-direction:column;gap:7px;
 }
+.stats-table-area{display:none}
+.stats-table-area:not(:empty){display:block;border-top:1px dashed var(--grid);padding-top:12px}
+.stats-table .num{font-variant-numeric:tabular-nums}
 .items-editor .ed-head{font-size:12px;font-weight:600;color:var(--muted)}
 .item-row{display:flex;align-items:center;gap:7px}
 .item-row .item-label{flex:1;min-width:0}
@@ -316,45 +321,46 @@ const uid = () => "q" + (_uid++) + "_" + Date.now().toString(36);
 
 /* ============ 기본 데이터 — 고령층 스마트폰 UI 실험 결과 ============ */
 function sampleData(){
+  /* a = [라벨, 평균, 중앙값, 표준편차, 표본수] — 중앙값/표준편차/표본수는 보고서 Ⅲ 표와 동일 */
   const ord3 = (a, b, c) => [
-    { label:a[0], count:a[1], color:ORD[0] },
-    { label:b[0], count:b[1], color:ORD[1] },
-    { label:c[0], count:c[1], color:ORD[2] },
+    { label:a[0], count:a[1], median:a[2], sd:a[3], n:a[4], color:ORD[0] },
+    { label:b[0], count:b[1], median:b[2], sd:b[3], n:b[4], color:ORD[1] },
+    { label:c[0], count:c[1], median:c[2], sd:c[3], n:c[4], color:ORD[2] },
   ];
   const ab = (a, b) => [
-    { label:a[0], count:a[1], color:CAT[0] },
-    { label:b[0], count:b[1], color:CAT[1] },
+    { label:a[0], count:a[1], median:a[2], sd:a[3], n:a[4], color:CAT[0] },
+    { label:b[0], count:b[1], median:b[2], sd:b[3], n:b[4], color:CAT[1] },
   ];
   return normalize({
     title: "고령층 스마트폰 UI·보이스피싱 대응 실험 결과",
     subtitle: "피험자 4명(박시환·박선진·유찬·채민) · 7개 실험 · 총 272회 시행",
     questions: [
       { title:"글씨 크기별 문장 인식 정확도", note:"노안 필터 '중' 고정 · 조건당 12회 시행", type:"barV", mode:"value", unit:"%",
-        items: ord3(["10pt",52.1], ["14pt",75.0], ["20pt",89.6]) },
+        items: ord3(["10pt",52.1,62.5,31.39,12], ["14pt",75.0,75.0,22.82,12], ["20pt",89.6,100.0,16.00,12]) },
 
       { title:"글씨 크기별 과제 수행 시간", note:"짧을수록 좋음 · 조건당 12회 시행", type:"line", mode:"value", unit:"초",
-        items: ord3(["10pt",5.05], ["14pt",6.68], ["20pt",5.71]) },
+        items: ord3(["10pt",5.05,4.75,2.69,12], ["14pt",6.68,6.10,2.29,12], ["20pt",5.71,5.30,2.05,12]) },
 
       { title:"음성 주파수별 안내 음성 인식 정확도", note:"조건당 11회 시행", type:"barV", mode:"value", unit:"%",
-        items: ord3(["저음",70.5], ["보통",86.4], ["고음",93.2]) },
+        items: ord3(["저음",70.5,75.0,25.71,11], ["보통",86.4,100.0,16.39,11], ["고음",93.2,100.0,15.41,11]) },
 
       { title:"음성 주파수별 과제 수행 시간", note:"세 조건 간 차이 거의 없음 · 조건당 11회 시행", type:"barV", mode:"value", unit:"초",
-        items: ord3(["저음",5.79], ["보통",5.81], ["고음",6.09]) },
+        items: ord3(["저음",5.79,5.80,1.45,11], ["보통",5.81,5.60,1.24,11], ["고음",6.09,6.20,1.65,11]) },
 
       { title:"문장 난이도별 정답률", note:"조건당 12회 시행", type:"barV", mode:"value", unit:"%",
-        items: ord3(["쉬움",100.0], ["보통",91.7], ["어려움",91.7]) },
+        items: ord3(["쉬움",100.0,null,null,12], ["보통",91.7,null,null,12], ["어려움",91.7,null,null,12]) },
 
       { title:"문장 난이도별 과제 수행 시간", note:"어려운 문장에서 시간이 크게 늘어남 · 조건당 12회 시행", type:"barV", mode:"value", unit:"초",
-        items: ord3(["쉬움",5.43], ["보통",5.18], ["어려움",7.94]) },
+        items: ord3(["쉬움",5.43,5.05,1.15,12], ["보통",5.18,4.90,1.19,12], ["어려움",7.94,6.60,4.57,12]) },
 
       { title:"버튼 개수별 목표 버튼 탐색 시간", note:"오조작은 전 조건 0회 · 조건당 12회 시행", type:"line", mode:"value", unit:"초",
-        items: ord3(["2개",1.15], ["4개",1.26], ["8개",2.80]) },
+        items: ord3(["2개",1.15,0.95,0.61,12], ["4개",1.26,1.20,0.45,12], ["8개",2.80,2.50,1.29,12]) },
 
       { title:"보이스피싱 경고 알림 유무별 사기 판별 정답률", note:"경고 OFF 36회 · 경고 ON 33회 시행", type:"barH", mode:"value", unit:"%",
-        items: ab(["경고 OFF",77.8], ["경고 ON",97.0]) },
+        items: ab(["경고 OFF",77.8,null,null,36], ["경고 ON",97.0,null,null,33]) },
 
       { title:"보이스피싱 경고 알림 유무별 판단 소요 시간", note:"경고가 있을 때 더 빠르게 판단 · 짧을수록 좋음", type:"barH", mode:"value", unit:"초",
-        items: ab(["경고 OFF",2.68], ["경고 ON",1.70]) },
+        items: ab(["경고 OFF",2.68,1.45,3.87,36], ["경고 ON",1.70,1.40,1.15,33]) },
 
       { title:"경고 알림 OFF — 판별 결과 분포", note:"총 36회 시행", type:"donut", mode:"count", unit:"회",
         items:[{ label:"정답", count:28, color:GOOD }, { label:"오답", count:8, color:BAD }] },
@@ -363,13 +369,13 @@ function sampleData(){
         items:[{ label:"정답", count:32, color:GOOD }, { label:"오답", count:1, color:BAD }] },
 
       { title:"AI 탐지 방식별 보이스피싱 판별 정확도", note:"방식당 11회 시행", type:"barH", mode:"value", unit:"%",
-        items: ab(["규칙 기반",60.0], ["LLM",79.5]) },
+        items: ab(["규칙 기반",60.0,60.0,0.00,11], ["LLM",79.5,79.0,1.37,11]) },
 
       { title:"AI 요약 기능 유무별 내용 이해 정확도", note:"조건당 20회 시행", type:"barH", mode:"value", unit:"%",
-        items: ab(["요약 OFF",95.0], ["요약 ON",92.5]) },
+        items: ab(["요약 OFF",95.0,100.0,10.00,20], ["요약 ON",92.5,100.0,19.53,20]) },
 
       { title:"AI 요약 기능 유무별 과제 수행 시간", note:"요약을 켜면 더 빠르게 파악 · 짧을수록 좋음", type:"barH", mode:"value", unit:"초",
-        items: ab(["요약 OFF",6.46], ["요약 ON",5.52]) },
+        items: ab(["요약 OFF",6.46,5.10,4.17,20], ["요약 ON",5.52,5.05,1.89,20]) },
 
       { title:"실험별 시행 횟수", note:"전체 272회의 구성", type:"table", mode:"count", unit:"회",
         items:[
@@ -403,11 +409,15 @@ function normalize(d){
       barGap: Number.isFinite(q.barGap) ? Math.min(70, Math.max(0, Math.round(q.barGap))) : 45,
       items: [],
     };
+    const numOrNull = v => Number.isFinite(v) ? v : (Number.isFinite(Number(v)) && v !== "" && v !== null ? Number(v) : null);
     if (Array.isArray(q.items)) q.items.forEach((it, i) => {
       nq.items.push({
         label: String(it.label ?? "항목 " + (i+1)),
         count: Math.max(0, Number(it.count) || 0),
         color: /^#[0-9a-fA-F]{6}$/.test(it.color || "") ? it.color : CAT[i % CAT.length],
+        median: numOrNull(it.median),
+        sd: numOrNull(it.sd),
+        n: numOrNull(it.n),
       });
     });
     out.questions.push(nq);
@@ -733,6 +743,26 @@ function tableChart(q){
   </table>`;
 }
 
+/* --- 상세 통계 표 (보고서와 동일: 표본수·평균·중앙값·표준편차) --- */
+function hasDetailStats(q){
+  return isCount(q) === false && q.items.some(it => it.n != null || it.median != null || it.sd != null);
+}
+function statsTableHTML(q){
+  const dash = v => v == null ? "–" : fmt(v);
+  const rows = q.items.map(it => `
+    <tr>
+      <td>${esc(it.label)}</td>
+      <td class="num">${dash(it.n)}</td>
+      <td class="num">${esc(vstr(q, it.count))}</td>
+      <td class="num">${it.median == null ? "–" : esc(vstr(q, it.median))}</td>
+      <td class="num">${dash(it.sd)}</td>
+    </tr>`).join("");
+  return `<table class="data-table stats-table">
+    <thead><tr><th>조건</th><th class="num">표본 수</th><th class="num">평균</th><th class="num">중앙값</th><th class="num">표준편차</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
 /* ============ 화면 렌더 ============ */
 
 function render(){
@@ -756,11 +786,16 @@ function selectHTML(cls, opts, cur, label){
 }
 
 function cardHTML(q, idx){
+  const valMode = !isCount(q);
   const items = q.items.map((it, i) => `
     <div class="item-row" data-idx="${i}">
       <input type="color" class="item-color" value="${it.color}" aria-label="항목 색상">
       <input class="item-label" value="${esc(it.label)}" placeholder="항목 이름">
-      <input class="item-count" type="number" min="0" step="any" value="${it.count}" aria-label="값">
+      <input class="item-count" type="number" min="0" step="any" value="${it.count}" aria-label="값" title="평균/값">
+      ${valMode ? `
+      <input class="item-n" type="number" min="0" step="1" value="${it.n ?? ""}" placeholder="n" aria-label="표본 수" title="표본 수(선택)">
+      <input class="item-median" type="number" step="any" value="${it.median ?? ""}" placeholder="중앙값" aria-label="중앙값" title="중앙값(선택)">
+      <input class="item-sd" type="number" step="any" min="0" value="${it.sd ?? ""}" placeholder="표준편차" aria-label="표준편차" title="표준편차(선택)">` : ``}
       <span class="arrows">
         <button class="icon-btn" data-action="up-item" title="위로">↑</button>
         <button class="icon-btn" data-action="down-item" title="아래로">↓</button>
@@ -794,6 +829,7 @@ function cardHTML(q, idx){
       </div>
     </div>
     <div class="chart-area">${chartHTML(q)}</div>
+    <div class="stats-table-area">${hasDetailStats(q) ? statsTableHTML(q) : ""}</div>
     <div class="items-editor edit-only">
       <div class="ed-head">${isCount(q) ? "항목 · 응답 수" : "조건 · 측정값"} (입력 즉시 그래프에 반영)</div>
       ${items}
@@ -821,6 +857,7 @@ function refreshChart(qid){
   const card = document.querySelector(`.card[data-id="${qid}"]`);
   if (!q || !card) return;
   card.querySelector(".chart-area").innerHTML = chartHTML(q);
+  card.querySelector(".stats-table-area").innerHTML = hasDetailStats(q) ? statsTableHTML(q) : "";
   card.querySelector(".badge").textContent = badgeText(q);
   card.querySelector(".ed-head").textContent =
     (isCount(q) ? "항목 · 응답 수" : "조건 · 측정값") + " (입력 즉시 그래프에 반영)";
@@ -869,9 +906,13 @@ document.addEventListener("input", e => {
   if (row){
     const it = q.items[+row.dataset.idx];
     if (!it) return;
+    const numOrNull = v => v === "" ? null : (Number.isFinite(parseFloat(v)) ? parseFloat(v) : null);
     if (el.classList.contains("item-label")) it.label = el.value;
     else if (el.classList.contains("item-count")) it.count = Math.max(0, parseFloat(el.value) || 0);
     else if (el.classList.contains("item-color")) it.color = el.value;
+    else if (el.classList.contains("item-n")) it.n = numOrNull(el.value);
+    else if (el.classList.contains("item-median")) it.median = numOrNull(el.value);
+    else if (el.classList.contains("item-sd")){ const v = numOrNull(el.value); it.sd = v === null ? null : Math.max(0, v); }
     refreshChart(q.id); save();
   }
 });
