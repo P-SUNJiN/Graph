@@ -91,6 +91,20 @@ body{
 .switch input:checked + .track::after{transform:translateX(16px)}
 .edit-hint{font-size:12px;color:var(--muted)}
 
+.layout-wrap{position:relative}
+.layout-panel{
+  position:absolute;top:calc(100% + 8px);right:0;z-index:30;width:250px;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.16);padding:14px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.lp-row{display:flex;flex-direction:column;gap:4px}
+.lp-row label{font-size:12px;font-weight:600;color:var(--ink2)}
+.lp-row .lp-input{width:100%;accent-color:var(--accent);cursor:pointer}
+.lp-row .lp-val{font-size:11px;color:var(--muted);align-self:flex-end;font-variant-numeric:tabular-nums}
+.lp-reset{align-self:flex-start;font-size:12px;padding:5px 10px}
+.layout-panel[hidden]{display:none}
+
 /* ============ 레이아웃 ============ */
 main{max-width:1240px;margin:0 auto;padding:28px 20px 60px}
 .page-head{padding:6px 4px 22px}
@@ -101,11 +115,12 @@ main{max-width:1240px;margin:0 auto;padding:28px 20px 60px}
 .page-head input.title-input{font-size:27px;font-weight:700;letter-spacing:-.3px}
 .page-head input.subtitle-input{font-size:14px;color:var(--ink2);margin-top:8px}
 
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(480px,100%),1fr));gap:20px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(480px,100%),1fr));gap:var(--card-gap,20px)}
 .card{
   background:var(--surface);border:1px solid var(--border);border-radius:14px;
-  padding:20px 22px 18px;box-shadow:0 1px 2px rgba(0,0,0,.04);
-  display:flex;flex-direction:column;gap:14px;
+  padding:var(--card-pad-y,20px) var(--card-pad-x,22px) calc(var(--card-pad-y,20px) - 2px);
+  box-shadow:0 1px 2px rgba(0,0,0,.04);
+  display:flex;flex-direction:column;gap:var(--card-inner-gap,14px);
 }
 .card-top{display:flex;flex-direction:column;gap:8px}
 .card-top .row1{display:flex;align-items:flex-start;gap:10px}
@@ -239,6 +254,32 @@ body.edit .view-only{display:none !important}
   <button class="btn" data-action="import">JSON 불러오기</button>
   <button class="btn edit-only" data-action="sample">기본 데이터</button>
   <button class="btn danger-text edit-only" data-action="reset">전체 초기화</button>
+  <span class="layout-wrap edit-only">
+    <button class="btn" data-action="layout" title="카드·여백 간격 조절">↔ 간격 설정</button>
+    <div class="layout-panel" id="layoutPanel" hidden>
+      <div class="lp-row">
+        <label>카드 사이 간격</label>
+        <input type="range" class="lp-input" data-var="--card-gap" min="0" max="48" step="2" value="20">
+        <span class="lp-val" data-for="--card-gap">20px</span>
+      </div>
+      <div class="lp-row">
+        <label>카드 내부 여백(상하)</label>
+        <input type="range" class="lp-input" data-var="--card-pad-y" min="6" max="40" step="2" value="20">
+        <span class="lp-val" data-for="--card-pad-y">20px</span>
+      </div>
+      <div class="lp-row">
+        <label>카드 내부 여백(좌우)</label>
+        <input type="range" class="lp-input" data-var="--card-pad-x" min="6" max="40" step="2" value="22">
+        <span class="lp-val" data-for="--card-pad-x">22px</span>
+      </div>
+      <div class="lp-row">
+        <label>카드 안 요소 간격</label>
+        <input type="range" class="lp-input" data-var="--card-inner-gap" min="0" max="28" step="2" value="14">
+        <span class="lp-val" data-for="--card-inner-gap">14px</span>
+      </div>
+      <button class="btn lp-reset" data-action="layout-reset">기본값으로</button>
+    </div>
+  </span>
   <button class="btn" data-action="theme" title="라이트/다크 전환">🌓</button>
   <input type="file" id="importFile" accept=".json,application/json" hidden>
 </div>
@@ -936,7 +977,63 @@ document.addEventListener("click", e => {
       try{ localStorage.setItem(KEY + ":theme", html.dataset.theme); }catch(e){}
       break;
     }
+    case "layout":{
+      const panel = document.getElementById("layoutPanel");
+      panel.hidden = !panel.hidden;
+      e.stopPropagation();
+      break;
+    }
+    case "layout-reset":
+      resetLayout();
+      break;
   }
+});
+
+/* 패널 바깥을 클릭하면 닫기 */
+document.addEventListener("click", e => {
+  const panel = document.getElementById("layoutPanel");
+  if (!panel || panel.hidden) return;
+  if (!e.target.closest(".layout-wrap")) panel.hidden = true;
+});
+
+/* ============ 레이아웃(간격) 커스텀 ============ */
+const LAYOUT_DEFAULTS = { "--card-gap": 20, "--card-pad-y": 20, "--card-pad-x": 22, "--card-inner-gap": 14 };
+const LAYOUT_KEY = KEY + ":layout";
+
+function applyLayout(vars){
+  for (const k in vars){
+    document.documentElement.style.setProperty(k, vars[k] + "px");
+    const input = document.querySelector(`.lp-input[data-var="${k}"]`);
+    const val = document.querySelector(`.lp-val[data-for="${k}"]`);
+    if (input) input.value = vars[k];
+    if (val) val.textContent = vars[k] + "px";
+  }
+}
+function saveLayout(vars){
+  try{ localStorage.setItem(LAYOUT_KEY, JSON.stringify(vars)); }catch(e){}
+}
+function loadLayout(){
+  try{
+    const raw = localStorage.getItem(LAYOUT_KEY);
+    if (raw) return Object.assign({}, LAYOUT_DEFAULTS, JSON.parse(raw));
+  }catch(e){}
+  return Object.assign({}, LAYOUT_DEFAULTS);
+}
+function resetLayout(){
+  applyLayout(LAYOUT_DEFAULTS);
+  try{ localStorage.removeItem(LAYOUT_KEY); }catch(e){}
+}
+
+let layoutState = loadLayout();
+applyLayout(layoutState);
+
+document.addEventListener("input", e => {
+  if (!e.target.classList.contains("lp-input")) return;
+  const key = e.target.dataset.var;
+  const v = Math.max(0, parseInt(e.target.value, 10) || 0);
+  layoutState[key] = v;
+  applyLayout({ [key]: v });
+  saveLayout(layoutState);
 });
 
 document.getElementById("importFile").addEventListener("change", e => {
