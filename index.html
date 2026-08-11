@@ -406,7 +406,7 @@ function normalize(d){
       type: CHART_TYPES.some(t => t[0] === q.type) ? q.type : "barV",
       mode: q.mode === "value" ? "value" : "count",
       unit: String(q.unit ?? ""),
-      barGap: Number.isFinite(q.barGap) ? Math.min(70, Math.max(0, Math.round(q.barGap))) : 45,
+      barGap: Number.isFinite(q.barGap) ? Math.min(70, Math.max(0, Math.round(q.barGap))) : 10,
       items: [],
     };
     const numOrNull = v => Number.isFinite(v) ? v : (Number.isFinite(Number(v)) && v !== "" && v !== null ? Number(v) : null);
